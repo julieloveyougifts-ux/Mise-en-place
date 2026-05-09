@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Mise en Place" />
+<meta name="theme-color" content="#1a1612" />
+<title>Mise en Place</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<style>
+:root {
+  --ink: #1a1612;
+  --ink2: #6b6560;
+  --ink3: #a09a94;
+  --cream: #faf8f5;
+  --cream2: #f2ede6;
+  --cream3: #e8e0d5;
+  --accent: #c8622a;
+  --accent2: #e8874f;
+  --accentbg: #fdf0e8;
+  --green: #2d6a4f;
+  --greenbg: #eaf4ee;
+  --border: rgba(26,22,18,0.1);
+  --border2: rgba(26,22,18,0.18);
+  --serif: 'DM Serif Display', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --r: 14px;
+  --r2: 20px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--cream); font-family: var(--sans); color: var(--ink); }
+
+/* ── Layout ── */
+.app { display: flex; height: 100dvh; background: var(--cream); overflow: hidden; }
+
+/* ── Sidebar ── */
+.sidebar { width: 240px; background: var(--ink); display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.25s ease; }
+.sidebar-header { padding: 24px 20px 16px; border-bottom: 0.5px solid rgba(255,255,255,0.08); }
+.app-name { font-family: var(--serif); font-size: 21px; color: #fff; letter-spacing: -0.3px; display: flex; align-items: center; gap: 10px; }
+.app-name-dot { width: 8px; height: 8px; background: var(--accent2); border-radius: 50%; flex-shrink: 0; }
+.app-tagline { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 4px; letter-spacing: 0.04em; padding-left: 18px; }
+.search-wrap { padding: 14px 16px; border-bottom: 0.5px solid rgba(255,255,255,0.06); }
+.search-wrap input { width: 100%; background: rgba(255,255,255,0.07); border: 0.5px solid rgba(255,255,255,0.12); color: #fff; font-family: var(--sans); font-size: 14px; padding: 9px 13px; border-radius: 10px; outline: none; }
+.search-wrap input::placeholder { color: rgba(255,255,255,0.3); }
+.search-wrap input:focus { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); }
+.nav-section { padding: 10px 0; flex: 1; overflow-y: auto; }
+.nav-label { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.25); padding: 6px 20px 4px; letter-spacing: 0.08em; text-transform: uppercase; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 14px; color: rgba(255,255,255,0.5); cursor: pointer; border-left: 2px solid transparent; transition: all 0.15s; }
+.nav-item:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); }
+.nav-item.active { background: rgba(200,98,42,0.15); color: var(--accent2); border-left-color: var(--accent2); font-weight: 500; }
+.nav-item i { font-size: 17px; }
+.nav-item .count { margin-left: auto; font-size: 11px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); padding: 1px 7px; border-radius: 20px; }
+.nav-item.active .count { background: rgba(200,98,42,0.2); color: var(--accent2); }
+.sidebar-footer { padding: 14px 16px; border-top: 0.5px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 7px; }
+.btn-accent { width: 100%; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px; background: var(--accent); color: #fff; border: none; border-radius: 10px; cursor: pointer; font-family: var(--sans); transition: background 0.15s; }
+.btn-accent:hover, .btn-accent:active { background: #b5551f; }
+.btn-ghost { width: 100%; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 9px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); border: 0.5px solid rgba(255,255,255,0.1); border-radius: 10px; cursor: pointer; font-family: var(--sans); transition: all 0.15s; }
+.btn-ghost:hover, .btn-ghost:active { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); }
+
+/* ── Main panel ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.toolbar { padding: 14px 18px 12px; background: var(--cream); border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.toolbar h2 { font-family: var(--serif); font-size: 22px; color: var(--ink); flex: 1; letter-spacing: -0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toolbar select { font-size: 12px; padding: 6px 10px; background: var(--cream2); border: 0.5px solid var(--border); color: var(--ink2); font-family: var(--sans); border-radius: 8px; }
+.view-toggle { display: flex; background: var(--cream2); border-radius: 8px; border: 0.5px solid var(--border); overflow: hidden; flex-shrink: 0; }
+.view-btn { padding: 6px 10px; font-size: 16px; background: none; border: none; cursor: pointer; color: var(--ink3); display: flex; align-items: center; transition: all 0.15s; }
+.view-btn.active { background: var(--ink); color: #fff; }
+
+/* Mobile top bar */
+.mobile-topbar { display: none; padding: 12px 16px; background: var(--ink); align-items: center; gap: 10px; flex-shrink: 0; }
+.mobile-topbar .menu-btn { background: none; border: none; color: rgba(255,255,255,0.7); font-size: 22px; cursor: pointer; display: flex; align-items: center; padding: 2px; }
+.mobile-topbar .title { font-family: var(--serif); font-size: 18px; color: #fff; flex: 1; }
+.mobile-topbar .add-btn { background: var(--accent); border: none; color: #fff; font-size: 20px; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 40; }
+
+/* ── Recipe grid ── */
+.recipe-grid { flex: 1; overflow-y: auto; padding: 16px 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; align-content: start; -webkit-overflow-scrolling: touch; }
+.recipe-grid.list-view { grid-template-columns: 1fr; gap: 8px; }
+.recipe-card { background: #fff; border: 0.5px solid var(--border); border-radius: var(--r2); overflow: hidden; cursor: pointer; transition: all 0.18s; }
+.recipe-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+.recipe-card:active { transform: scale(0.98); }
+.recipe-card .thumb { height: 110px; display: flex; align-items: center; justify-content: center; font-size: 38px; position: relative; overflow: hidden; }
+.recipe-card .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.recipe-card .card-body { padding: 12px 14px; }
+.recipe-card .card-title { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recipe-card .card-meta { font-size: 11px; color: var(--ink3); display: flex; gap: 8px; }
+.recipe-card .card-tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500; margin-top: 8px; display: inline-block; letter-spacing: 0.03em; }
+.recipe-card.list-view { display: flex; align-items: center; border-radius: var(--r); }
+.recipe-card.list-view .thumb { height: 64px; width: 64px; min-width: 64px; font-size: 26px; border-radius: 0; }
+.recipe-card.list-view .card-body { flex: 1; padding: 0 14px; min-width: 0; }
+.recipe-card.list-view .card-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recipe-card.list-view .card-tag { margin-top: 3px; }
+.empty-state { grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--ink3); gap: 10px; padding: 60px 0; }
+.empty-state i { font-size: 44px; opacity: 0.4; }
+.empty-state p { font-size: 14px; }
+
+/* ── Tags ── */
+.tag-breakfast { background: #FEF3E2; color: #854F0B; }
+.tag-lunch { background: #E8F4FD; color: #185FA5; }
+.tag-dinner { background: #EEF0FE; color: #3C3489; }
+.tag-dessert { background: #FDE8F3; color: #72243E; }
+.tag-snack { background: #E8F5ED; color: #2d6a4f; }
+
+/* ── AI bar ── */
+.ai-panel { border-top: 0.5px solid var(--border); background: var(--cream); flex-shrink: 0; }
+.ai-bar { padding: 10px 16px; display: flex; align-items: center; gap: 9px; }
+.ai-icon { width: 28px; height: 28px; background: var(--accentbg); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ai-icon i { font-size: 15px; color: var(--accent); }
+.ai-label { font-size: 12px; font-weight: 500; color: var(--ink2); flex-shrink: 0; }
+.ai-bar input { flex: 1; font-size: 13px; background: #fff; border: 0.5px solid var(--border2); font-family: var(--sans); border-radius: 10px; color: var(--ink); padding: 8px 12px; outline: none; min-width: 0; }
+.ai-bar input:focus { border-color: var(--accent); }
+.ai-ask-btn { background: var(--ink); color: #fff; border: none; border-radius: 10px; padding: 8px 14px; font-size: 13px; font-family: var(--sans); cursor: pointer; font-weight: 500; transition: background 0.15s; flex-shrink: 0; }
+.ai-ask-btn:hover { background: #2c2822; }
+.ai-response { padding: 10px 16px 14px; font-size: 13px; color: var(--ink2); line-height: 1.7; border-top: 0.5px solid var(--border); background: #fff; }
+.ai-response.loading { display: flex; align-items: center; gap: 10px; color: var(--accent); }
+.dot-anim span { display: inline-block; animation: blink 1.2s infinite; }
+.dot-anim span:nth-child(2) { animation-delay: 0.2s; }
+.dot-anim span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+/* ── Modals ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(26,22,18,0.5); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
+@media (min-width: 600px) { .modal-overlay { align-items: center; } }
+.modal { background: #fff; border-radius: 20px 20px 0 0; width: 100%; max-height: 90dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+@media (min-width: 600px) { .modal { border-radius: 20px; width: 500px; max-height: 85dvh; } }
+.modal-header { padding: 18px 20px 14px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; position: sticky; top: 0; background: #fff; z-index: 1; }
+.modal-header h3 { font-family: var(--serif); font-size: 19px; flex: 1; color: var(--ink); }
+.close-btn { background: var(--cream2); border: none; cursor: pointer; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--ink2); font-size: 16px; flex-shrink: 0; }
+.close-btn:hover { background: var(--cream3); }
+.modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 13px; }
+.form-row { display: flex; gap: 10px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.form-group label { font-size: 11px; font-weight: 500; color: var(--ink2); letter-spacing: 0.05em; text-transform: uppercase; }
+.form-group input, .form-group select, .form-group textarea { font-size: 14px; width: 100%; font-family: var(--sans); background: var(--cream); border: 0.5px solid var(--border2); color: var(--ink); border-radius: 10px; padding: 10px 13px; outline: none; -webkit-appearance: none; appearance: none; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); background: #fff; }
+.form-group textarea { height: 84px; resize: vertical; line-height: 1.6; }
+.modal-footer { padding: 14px 20px; border-top: 0.5px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; position: sticky; bottom: 0; background: #fff; }
+.modal-footer button { font-size: 14px; padding: 9px 20px; border-radius: 10px; font-family: var(--sans); cursor: pointer; }
+.cancel-btn { background: var(--cream2); border: none; color: var(--ink2); }
+.save-btn { background: var(--accent); border: none; color: #fff; font-weight: 500; }
+.save-btn:active { background: #b5551f; }
+
+/* ── Tabs ── */
+.tab-bar { display: flex; background: var(--cream); border-bottom: 0.5px solid var(--border); padding: 0 20px; }
+.tab { padding: 11px 16px; font-size: 13px; cursor: pointer; color: var(--ink3); border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; font-family: var(--sans); transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+.tab-panel { display: none; flex-direction: column; gap: 13px; }
+.tab-panel.active { display: flex; }
+
+/* ── Scan ── */
+.scan-zone { border: 1.5px dashed var(--border2); border-radius: var(--r); padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; cursor: pointer; transition: all 0.15s; background: var(--cream); }
+.scan-zone:hover, .scan-zone:active { background: var(--accentbg); border-color: var(--accent); }
+.scan-zone i { font-size: 30px; color: var(--accent); }
+.scan-zone p { font-size: 13px; color: var(--ink2); text-align: center; line-height: 1.6; }
+.scan-pick-btn { background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 9px 20px; font-size: 14px; font-family: var(--sans); cursor: pointer; }
+.scan-preview { width: 100%; border-radius: var(--r); overflow: hidden; position: relative; }
+.scan-preview img { width: 100%; max-height: 180px; object-fit: cover; border-radius: var(--r); }
+.remove-img { position: absolute; top: 8px; right: 8px; background: rgba(26,22,18,0.55); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.scan-status { font-size: 13px; color: var(--green); display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--greenbg); border-radius: var(--r); }
+.scan-extract-btn { background: var(--ink); color: #fff; border: none; border-radius: 10px; padding: 10px; font-size: 14px; font-family: var(--sans); cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px; font-weight: 500; margin-top: 4px; }
+.scan-extract-btn:active { background: #2c2822; }
+
+/* ── Detail view ── */
+.detail-modal { border-radius: 20px 20px 0 0; width: 100%; max-height: 92dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; background: #fff; }
+@media (min-width: 600px) { .detail-modal { border-radius: 20px; width: 560px; max-height: 85dvh; } }
+.detail-hero { padding: 20px 20px 16px; display: flex; gap: 16px; align-items: flex-start; border-bottom: 0.5px solid var(--border); }
+.detail-thumb { width: 76px; height: 76px; border-radius: var(--r); overflow: hidden; background: var(--cream2); display: flex; align-items: center; justify-content: center; font-size: 40px; flex-shrink: 0; }
+.detail-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.detail-info { flex: 1; min-width: 0; }
+.detail-info h2 { font-family: var(--serif); font-size: 19px; color: var(--ink); margin-bottom: 7px; line-height: 1.2; }
+.detail-meta { display: flex; gap: 10px; font-size: 12px; color: var(--ink2); flex-wrap: wrap; align-items: center; }
+.detail-meta span { display: flex; align-items: center; gap: 4px; }
+.detail-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.detail-actions button { font-size: 12px; padding: 6px 11px; border-radius: 8px; border: 0.5px solid var(--border2); background: var(--cream2); color: var(--ink2); cursor: pointer; font-family: var(--sans); display: flex; align-items: center; gap: 4px; }
+.detail-actions .del-btn { color: #A32D2D; border-color: #F7C1C1; background: #FCEBEB; }
+.detail-content { padding: 18px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 480px) { .detail-content { grid-template-columns: 1fr; } }
+.detail-section h4 { font-size: 10px; font-weight: 500; color: var(--ink3); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.ingredient-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.ingredient-list li { font-size: 13px; padding: 8px 11px; background: var(--cream); border-radius: 8px; display: flex; gap: 9px; align-items: center; color: var(--ink); }
+.ingredient-list li i { font-size: 14px; color: var(--accent); flex-shrink: 0; }
+.steps-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.steps-list li { font-size: 13px; display: flex; gap: 10px; color: var(--ink); line-height: 1.5; }
+.step-num { min-width: 22px; height: 22px; background: var(--ink); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; flex-shrink: 0; margin-top: 1px; }
+
+/* ── Mobile responsive ── */
+@media (max-width: 640px) {
+  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 45; transform: translateX(-100%); width: 280px; }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay.visible { display: block; }
+  .mobile-topbar { display: flex; }
+  .toolbar { padding: 10px 14px; }
+  .toolbar h2 { font-size: 18px; }
+  .recipe-grid { padding: 12px 14px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .ai-bar { padding: 8px 12px; gap: 7px; }
+  .ai-label { display: none; }
+}
+
+@media print {
+  .app { display: none; }
+  #print-area { display: block !important; }
+}
+#print-area { display: none; }
+
+/* ── API Key Onboarding ── */
+#api-key-screen {
+  position: fixed; inset: 0; background: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 24px;
+}
+.onboard-card {
+  background: #fff; border-radius: 24px; width: 100%; max-width: 420px;
+  padding: 36px 32px; display: flex; flex-direction: column; gap: 20px;
+}
+.onboard-logo { display: flex; align-items: center; gap: 10px; }
+.onboard-logo-dot { width: 10px; height: 10px; background: var(--accent2); border-radius: 50%; flex-shrink: 0; }
+.onboard-logo-name { font-family: var(--serif); font-size: 22px; color: var(--ink); }
+.onboard-tagline { font-size: 13px; color: var(--ink3); margin-top: -10px; padding-left: 20px; }
+.onboard-divider { height: 0.5px; background: var(--border); }
+.onboard-heading { font-family: var(--serif); font-size: 20px; color: var(--ink); line-height: 1.3; }
+.onboard-body { font-size: 13px; color: var(--ink2); line-height: 1.7; }
+.onboard-body a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.onboard-body a:hover { text-decoration: underline; }
+.onboard-input-wrap { display: flex; flex-direction: column; gap: 6px; }
+.onboard-input-label { font-size: 11px; font-weight: 500; color: var(--ink2); letter-spacing: 0.05em; text-transform: uppercase; }
+.onboard-input { font-size: 14px; font-family: var(--sans); background: var(--cream); border: 0.5px solid var(--border2); color: var(--ink); border-radius: 10px; padding: 11px 14px; outline: none; width: 100%; letter-spacing: 0.02em; }
+.onboard-input:focus { border-color: var(--accent); background: #fff; }
+.onboard-error { font-size: 12px; color: #A32D2D; background: #FCEBEB; padding: 8px 12px; border-radius: 8px; display: none; }
+.onboard-btn { background: var(--accent); color: #fff; border: none; border-radius: 12px; padding: 13px; font-size: 15px; font-family: var(--sans); font-weight: 500; cursor: pointer; width: 100%; transition: background 0.15s; }
+.onboard-btn:hover { background: #b5551f; }
+.onboard-note { font-size: 11px; color: var(--ink3); text-align: center; line-height: 1.6; }
+.onboard-skip { font-size: 12px; color: var(--ink3); text-align: center; cursor: pointer; text-decoration: underline; }
+.onboard-skip:hover { color: var(--ink2); }
+/* Key badge in sidebar footer */
+.key-badge { display: flex; align-items: center; gap: 6px; padding: 7px 10px; background: rgba(255,255,255,0.05); border: 0.5px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+.key-badge:hover { background: rgba(255,255,255,0.1); }
+.key-badge i { font-size: 14px; color: var(--green); }
+.key-badge span { font-size: 11px; color: rgba(255,255,255,0.4); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.key-badge .key-change { font-size: 11px; color: rgba(255,255,255,0.25); flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- Mobile top bar -->
+  <div class="mobile-topbar">
+    <button class="menu-btn" onclick="toggleSidebar()" aria-label="Open menu"><i class="ti ti-menu-2"></i></button>
+    <span class="title">Mise en place</span>
+    <button class="add-btn" onclick="openAddModal('manual')" aria-label="Add recipe"><i class="ti ti-plus"></i></button>
+  </div>
+
+  <!-- Sidebar overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="app-name"><span class="app-name-dot"></span> Mise en place</div>
+      <div class="app-tagline">your recipe collection</div>
+    </div>
+    <div class="search-wrap">
+      <input type="text" placeholder="Search recipes…" id="search-input" />
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Browse</div>
+      <div class="nav-item active" data-filter="all" onclick="setFilter('all')"><i class="ti ti-layout-grid"></i> All recipes <span class="count" id="cnt-all">0</span></div>
+      <div class="nav-item" data-filter="breakfast" onclick="setFilter('breakfast')"><i class="ti ti-sun"></i> Breakfast <span class="count" id="cnt-breakfast">0</span></div>
+      <div class="nav-item" data-filter="lunch" onclick="setFilter('lunch')"><i class="ti ti-salad"></i> Lunch <span class="count" id="cnt-lunch">0</span></div>
+      <div class="nav-item" data-filter="dinner" onclick="setFilter('dinner')"><i class="ti ti-moon"></i> Dinner <span class="count" id="cnt-dinner">0</span></div>
+      <div class="nav-item" data-filter="dessert" onclick="setFilter('dessert')"><i class="ti ti-ice-cream"></i> Dessert <span class="count" id="cnt-dessert">0</span></div>
+      <div class="nav-item" data-filter="snack" onclick="setFilter('snack')"><i class="ti ti-apple"></i> Snacks <span class="count" id="cnt-snack">0</span></div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn-accent" onclick="openAddModal('manual'); closeSidebar();"><i class="ti ti-plus"></i> Add recipe</button>
+      <button class="btn-ghost" onclick="openAddModal('camera'); closeSidebar();"><i class="ti ti-camera"></i> Scan a recipe</button>
+      <div class="key-badge" onclick="promptChangeKey()" id="key-badge" title="Click to change API key">
+        <i class="ti ti-key"></i>
+        <span id="key-badge-text">No API key set</span>
+        <span class="key-change">change</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="toolbar">
+      <h2 id="section-title">All recipes</h2>
+      <select id="sort-select" onchange="renderCards()">
+        <option value="newest">Newest first</option>
+        <option value="az">A–Z</option>
+        <option value="time">Quickest first</option>
+      </select>
+      <div class="view-toggle">
+        <button class="view-btn active" id="grid-btn" onclick="setView('grid')" aria-label="Grid view"><i class="ti ti-layout-grid"></i></button>
+        <button class="view-btn" id="list-btn" onclick="setView('list')" aria-label="List view"><i class="ti ti-list"></i></button>
+      </div>
+    </div>
+    <div class="recipe-grid" id="recipe-grid"></div>
+    <div class="ai-panel">
+      <div class="ai-bar">
+        <div class="ai-icon"><i class="ti ti-sparkles"></i></div>
+        <span class="ai-label">Ask Gemini</span>
+        <input type="text" id="ai-input" placeholder="Suggest a recipe with what I have…" />
+        <button class="ai-ask-btn" onclick="askClaude()">Ask ↗</button>
+      </div>
+      <div class="ai-response" id="ai-response" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modal-overlay" style="display:none;" onclick="handleOverlayClick(event,'modal-overlay')">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-header">
+      <h3 id="modal-title">Add a recipe</h3>
+      <button class="close-btn" onclick="closeModal()" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="tab-bar">
+      <button class="tab active" id="tab-manual" onclick="switchTab('manual')"><i class="ti ti-pencil"></i> Manual</button>
+      <button class="tab" id="tab-camera" onclick="switchTab('camera')"><i class="ti ti-camera"></i> Scan from photo</button>
+      <button class="tab" id="tab-url" onclick="switchTab('url')"><i class="ti ti-link"></i> Import from URL</button>
+    </div>
+    <div class="modal-body">
+      <div class="tab-panel active" id="panel-manual">
+        <div class="form-row">
+          <div class="form-group" style="flex:2;"><label>Recipe name</label><input type="text" id="f-name" placeholder="e.g. Lemon pasta" /></div>
+          <div class="form-group" style="flex:1;"><label>Emoji</label><input type="text" id="f-emoji" placeholder="🍝" maxlength="2" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Category</label><select id="f-cat"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner" selected>Dinner</option><option value="dessert">Dessert</option><option value="snack">Snack</option></select></div>
+          <div class="form-group"><label>Time (mins)</label><input type="number" id="f-time" placeholder="30" min="1" /></div>
+          <div class="form-group"><label>Servings</label><input type="number" id="f-servings" placeholder="4" min="1" /></div>
+        </div>
+        <div class="form-group"><label>Ingredients (one per line)</label><textarea id="f-ingredients" placeholder="2 cups pasta&#10;1 lemon, zested&#10;3 tbsp olive oil"></textarea></div>
+        <div class="form-group"><label>Steps (one per line)</label><textarea id="f-steps" placeholder="Cook pasta until al dente.&#10;Zest lemon and mix with oil."></textarea></div>
+      </div>
+      <div class="tab-panel" id="panel-camera">
+        <div id="scan-upload-zone">
+          <div class="scan-zone" onclick="document.getElementById('camera-file').click()">
+            <i class="ti ti-camera"></i>
+            <p>Take a photo or upload an image of a recipe card, cookbook page, or handwritten note</p>
+            <button class="scan-pick-btn" onclick="event.stopPropagation();document.getElementById('camera-file').click()"><i class="ti ti-upload"></i> Choose photo</button>
+          </div>
+          <input type="file" id="camera-file" accept="image/*" capture="environment" style="display:none;" onchange="handleImageUpload(event)" />
+        </div>
+        <div id="scan-preview-wrap" style="display:none;">
+          <div class="scan-preview"><img id="scan-img-preview" src="" alt="Recipe photo" /><button class="remove-img" onclick="clearScanImage()" aria-label="Remove image"><i class="ti ti-x"></i></button></div>
+          <button class="scan-extract-btn" onclick="extractRecipeFromImage()"><i class="ti ti-sparkles"></i> Extract recipe with AI</button>
+        </div>
+        <div id="scan-status" style="display:none;" class="scan-status"><span class="dot-anim"><span>.</span><span>.</span><span>.</span></span> Reading your recipe…</div>
+        <div id="scan-result" style="display:none;">
+          <div class="scan-status" style="margin-bottom:10px;"><i class="ti ti-check"></i> Recipe extracted — review and save</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label>Recipe name</label><input type="text" id="sf-name" /></div>
+            <div class="form-group" style="flex:1;"><label>Emoji</label><input type="text" id="sf-emoji" maxlength="2" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Category</label><select id="sf-cat"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="dessert">Dessert</option><option value="snack">Snack</option></select></div>
+            <div class="form-group"><label>Time (mins)</label><input type="number" id="sf-time" min="1" /></div>
+            <div class="form-group"><label>Servings</label><input type="number" id="sf-servings" min="1" /></div>
+          </div>
+          <div class="form-group"><label>Ingredients</label><textarea id="sf-ingredients" style="height:70px;"></textarea></div>
+          <div class="form-group"><label>Steps</label><textarea id="sf-steps" style="height:70px;"></textarea></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="panel-url">
+        <div id="url-input-zone">
+          <div class="scan-zone" style="cursor:default;">
+            <i class="ti ti-world"></i>
+            <p>Paste a link to any recipe page — from food blogs, NYT Cooking, AllRecipes, and more</p>
+          </div>
+          <div class="form-group" style="margin-top:10px;">
+            <label>Recipe URL</label>
+            <input type="url" id="url-input" placeholder="https://www.example.com/recipes/pasta" style="font-size:14px;" />
+          </div>
+          <button class="scan-extract-btn" style="margin-top:4px;" onclick="extractRecipeFromUrl()"><i class="ti ti-sparkles"></i> Import recipe with AI</button>
+        </div>
+        <div id="url-status" style="display:none;" class="scan-status"><span class="dot-anim"><span>.</span><span>.</span><span>.</span></span> Fetching &amp; reading recipe…</div>
+        <div id="url-result" style="display:none;">
+          <div class="scan-status" style="margin-bottom:10px;"><i class="ti ti-check"></i> Recipe imported — review and save</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label>Recipe name</label><input type="text" id="uf-name" /></div>
+            <div class="form-group" style="flex:1;"><label>Emoji</label><input type="text" id="uf-emoji" maxlength="2" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Category</label><select id="uf-cat"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="dessert">Dessert</option><option value="snack">Snack</option></select></div>
+            <div class="form-group"><label>Time (mins)</label><input type="number" id="uf-time" min="1" /></div>
+            <div class="form-group"><label>Servings</label><input type="number" id="uf-servings" min="1" /></div>
+          </div>
+          <div class="form-group"><label>Ingredients</label><textarea id="uf-ingredients" style="height:70px;"></textarea></div>
+          <div class="form-group"><label>Steps</label><textarea id="uf-steps" style="height:70px;"></textarea></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+      <button class="save-btn" onclick="saveRecipe()">Save recipe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detail-overlay" style="display:none;" onclick="handleOverlayClick(event,'detail-overlay')">
+  <div class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <div id="detail-content-inner"></div>
+  </div>
+</div>
+
+<!-- API Key Onboarding Screen -->
+<div id="api-key-screen" style="display:none;">
+  <div class="onboard-card">
+    <div>
+      <div class="onboard-logo"><span class="onboard-logo-dot"></span><span class="onboard-logo-name">Mise en place</span></div>
+      <div class="onboard-tagline">your recipe collection</div>
+    </div>
+    <div class="onboard-divider"></div>
+    <div class="onboard-heading">Add your Google Gemini API key to unlock AI features</div>
+    <div class="onboard-body">
+      The AI features — recipe scanning and the AI assistant — need a Google Gemini API key to work.<br><br>
+      Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. Your key is stored only on your device and never sent anywhere except Google's API.
+    </div>
+    <div class="onboard-input-wrap">
+      <div class="onboard-input-label">Your API key</div>
+      <input class="onboard-input" type="password" id="onboard-key-input" placeholder="AIza…" autocomplete="off" spellcheck="false" />
+      <div class="onboard-error" id="onboard-error">That doesn't look like a valid Gemini API key. It should start with <strong>AIza</strong>.</div>
+    </div>
+    <button class="onboard-btn" onclick="saveApiKey()">Save key &amp; open app</button>
+    <div class="onboard-skip" onclick="skipApiKey()">Skip for now — I'll use it without AI features</div>
+    <div class="onboard-note">Your key is saved in your browser's local storage.<br>It never leaves your device except to call Google's Gemini API.</div>
+  </div>
+</div>
+
+<!-- Print area -->
+<div id="print-area"></div>
+
+<script>
+const STORAGE_KEY = 'mise-en-place-recipes';
+const API_KEY_STORAGE = 'mise-en-place-apikey';
+
+// ── API Key Management ──
+function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ''; }
+
+function saveApiKey() {
+  const val = document.getElementById('onboard-key-input').value.trim();
+  const errEl = document.getElementById('onboard-error');
+  if (!val.startsWith('AIza') || val.length < 20) {
+    errEl.style.display = 'block'; return;
+  }
+  errEl.style.display = 'none';
+  localStorage.setItem(API_KEY_STORAGE, val);
+  updateKeyBadge();
+  document.getElementById('api-key-screen').style.display = 'none';
+}
+
+function skipApiKey() {
+  localStorage.setItem(API_KEY_STORAGE, '__skipped__');
+  updateKeyBadge();
+  document.getElementById('api-key-screen').style.display = 'none';
+}
+
+function promptChangeKey() {
+  const current = getApiKey();
+  document.getElementById('onboard-key-input').value = (current && current !== '__skipped__') ? current : '';
+  document.getElementById('onboard-error').style.display = 'none';
+  document.getElementById('api-key-screen').style.display = 'flex';
+  closeSidebar();
+}
+
+function updateKeyBadge() {
+  const key = getApiKey();
+  const badge = document.getElementById('key-badge-text');
+  if (!badge) return;
+  if (!key || key === '__skipped__') {
+    badge.textContent = 'No API key set';
+    badge.parentElement.querySelector('i').style.color = 'rgba(255,255,255,0.25)';
+  } else {
+    badge.textContent = key.slice(0, 10) + '••••••••';
+    badge.parentElement.querySelector('i').style.color = 'var(--green)';
+  }
+}
+
+function checkApiKeyOnLaunch() {
+  const key = getApiKey();
+  if (!key) {
+    // First launch — show onboarding
+    document.getElementById('api-key-screen').style.display = 'flex';
+    document.getElementById('onboard-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
+  }
+  updateKeyBadge();
+}
+
+function geminiUrl(endpoint) {
+  const key = getApiKey();
+  return `https://generativelanguage.googleapis.com/v1beta/models/${endpoint}?key=${key}`;
+}
+
+function requireApiKey(featureName) {
+  const key = getApiKey();
+  if (!key || key === '__skipped__') {
+    if (confirm(`The "${featureName}" feature needs a Gemini API key.\n\nWould you like to add one now?`)) {
+      promptChangeKey();
+    }
+    return false;
+  }
+  return true;
+}
+
+let recipes = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || [
+  { id:1, name:"Spaghetti carbonara", emoji:"🍝", category:"dinner", time:25, servings:2, ingredients:["200g spaghetti","2 eggs","50g pecorino","100g pancetta","Black pepper"], steps:["Boil pasta in salted water.","Fry pancetta until crispy.","Whisk eggs and cheese together.","Drain pasta, combine off heat with egg mixture.","Add pancetta and season generously."], added: Date.now()-1000 },
+  { id:2, name:"Avocado toast", emoji:"🥑", category:"breakfast", time:10, servings:1, ingredients:["2 slices sourdough","1 ripe avocado","Chilli flakes","Lemon juice","Salt"], steps:["Toast bread until golden.","Mash avocado with lemon juice and salt.","Spread on toast, sprinkle chilli flakes."], added: Date.now()-2000 },
+  { id:3, name:"Chocolate mousse", emoji:"🍫", category:"dessert", time:20, servings:4, ingredients:["200g dark chocolate","3 eggs, separated","2 tbsp sugar","200ml cream"], steps:["Melt chocolate and cool slightly.","Fold in egg yolks.","Whip cream and fold in.","Whisk whites to stiff peaks and fold in.","Chill for 2 hours."], added: Date.now()-3000 },
+];
+let nextId = Math.max(0, ...recipes.map(r => r.id)) + 1;
+let currentFilter = 'all', currentView = 'grid', searchTerm = '', currentTab = 'manual', scannedImageData = null;
+
+function saveToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes)); }
+
+function bgColor(cat) { return {breakfast:'#FEF3E2',lunch:'#E8F4FD',dinner:'#EEF0FE',dessert:'#FDE8F3',snack:'#E8F5ED'}[cat]||'#F1EFE8'; }
+function tagClass(cat) { return 'tag-'+cat; }
+function tagLabel(cat) { return cat.charAt(0).toUpperCase()+cat.slice(1); }
+
+function updateCounts() {
+  const cats = ['breakfast','lunch','dinner','dessert','snack'];
+  document.getElementById('cnt-all').textContent = recipes.length;
+  cats.forEach(c => { const el = document.getElementById('cnt-'+c); if (el) el.textContent = recipes.filter(r=>r.category===c).length||0; });
+}
+
+function getFiltered() {
+  let list = recipes.slice();
+  if (currentFilter !== 'all') list = list.filter(r => r.category === currentFilter);
+  if (searchTerm) list = list.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const sort = document.getElementById('sort-select').value;
+  if (sort === 'az') list.sort((a,b) => a.name.localeCompare(b.name));
+  else if (sort === 'time') list.sort((a,b) => a.time - b.time);
+  else list.sort((a,b) => b.added - a.added);
+  return list;
+}
+
+function renderCards() {
+  const grid = document.getElementById('recipe-grid');
+  const list = getFiltered();
+  grid.className = 'recipe-grid' + (currentView === 'list' ? ' list-view' : '');
+  if (!list.length) { grid.innerHTML = '<div class="empty-state"><i class="ti ti-book-off"></i><p>No recipes yet — add one!</p></div>'; updateCounts(); return; }
+  grid.innerHTML = list.map(r => {
+    const thumb = r.photo ? `<img src="${r.photo}" alt="${r.name}" loading="lazy" />` : (r.emoji || '🍽️');
+    if (currentView === 'list') return `<div class="recipe-card list-view" onclick="openDetail(${r.id})"><div class="thumb" style="background:${bgColor(r.category)}">${thumb}</div><div class="card-body"><div class="card-title">${r.name}</div><div class="card-meta"><span><i class="ti ti-clock" style="font-size:12px"></i> ${r.time}m</span><span><i class="ti ti-users" style="font-size:12px"></i> ${r.servings}</span></div><span class="card-tag ${tagClass(r.category)}">${tagLabel(r.category)}</span></div></div>`;
+    return `<div class="recipe-card" onclick="openDetail(${r.id})"><div class="thumb" style="background:${bgColor(r.category)}">${thumb}</div><div class="card-body"><div class="card-title">${r.name}</div><div class="card-meta"><span><i class="ti ti-clock" style="font-size:12px"></i> ${r.time}m</span><span><i class="ti ti-users" style="font-size:12px"></i> ${r.servings}</span></div><span class="card-tag ${tagClass(r.category)}">${tagLabel(r.category)}</span></div></div>`;
+  }).join('');
+  updateCounts();
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.filter === f));
+  const labels = {all:'All recipes',breakfast:'Breakfast',lunch:'Lunch',dinner:'Dinner',dessert:'Dessert',snack:'Snacks'};
+  document.getElementById('section-title').textContent = labels[f];
+  renderCards();
+  closeSidebar();
+}
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('grid-btn').classList.toggle('active', v === 'grid');
+  document.getElementById('list-btn').classList.toggle('active', v === 'list');
+  renderCards();
+}
+
+function toggleSidebar() {
+  const s = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay');
+  s.classList.toggle('open'); o.classList.toggle('visible');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('visible');
+}
+
+function handleOverlayClick(e, overlayId) {
+  if (e.target.id === overlayId) { if (overlayId === 'modal-overlay') closeModal(); else closeDetail(); }
+}
+
+function openAddModal(tab) {
+  ['f-name','f-emoji','f-time','f-servings','f-ingredients','f-steps'].forEach(id => { const el = document.getElementById(id); if (el) el.value=''; });
+  document.getElementById('f-cat').value = 'dinner';
+  clearScanImage();
+  document.getElementById('scan-result').style.display = 'none';
+  const urlInput = document.getElementById('url-input'); if (urlInput) urlInput.value='';
+  document.getElementById('url-result').style.display = 'none';
+  document.getElementById('url-status').style.display = 'none';
+  document.getElementById('modal-overlay').style.display = 'flex';
+  switchTab(tab||'manual');
+}
+
+function closeModal() { document.getElementById('modal-overlay').style.display='none'; scannedImageData=null; }
+
+function switchTab(tab) {
+  currentTab = tab;
+  ['manual','camera','url'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('active', tab===t);
+    document.getElementById('panel-'+t).classList.toggle('active', tab===t);
+  });
+  if (tab === 'url') {
+    document.getElementById('url-result').style.display='none';
+    document.getElementById('url-status').style.display='none';
+  }
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    scannedImageData = e.target.result;
+    document.getElementById('scan-img-preview').src = scannedImageData;
+    document.getElementById('scan-upload-zone').style.display='none';
+    document.getElementById('scan-preview-wrap').style.display='block';
+    document.getElementById('scan-result').style.display='none';
+    document.getElementById('scan-status').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearScanImage() {
+  scannedImageData = null;
+  const cf = document.getElementById('camera-file'); if (cf) cf.value='';
+  document.getElementById('scan-upload-zone').style.display='block';
+  document.getElementById('scan-preview-wrap').style.display='none';
+  document.getElementById('scan-result').style.display='none';
+  document.getElementById('scan-status').style.display='none';
+}
+
+async function extractRecipeFromImage() {
+  if (!scannedImageData) return;
+  if (!requireApiKey('Scan from photo')) return;
+  document.getElementById('scan-preview-wrap').style.display='none';
+  document.getElementById('scan-status').style.display='flex';
+  document.getElementById('scan-result').style.display='none';
+  const base64 = scannedImageData.split(',')[1];
+  const mediaType = scannedImageData.split(';')[0].split(':')[1];
+  try {
+    const res = await fetch(geminiUrl('gemini-2.0-flash:generateContent'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ contents:[{ parts:[{ inline_data:{ mime_type:mediaType, data:base64 } },{ text:`Extract the recipe from this image. Return ONLY a JSON object (no markdown, no backticks) with: name (string), emoji (single relevant emoji), category (breakfast/lunch/dinner/dessert/snack), time (number in minutes), servings (number), ingredients (array of strings), steps (array of strings). If not a recipe image, return {"error":"not a recipe"}.` }] }] }) });
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    if (parsed.error) { document.getElementById('scan-status').style.display='none'; document.getElementById('scan-preview-wrap').style.display='block'; alert("This doesn't look like a recipe image. Please try again."); return; }
+    document.getElementById('sf-name').value = parsed.name||'';
+    document.getElementById('sf-emoji').value = parsed.emoji||'🍽️';
+    document.getElementById('sf-cat').value = ['breakfast','lunch','dinner','dessert','snack'].includes(parsed.category) ? parsed.category : 'dinner';
+    document.getElementById('sf-time').value = parsed.time||30;
+    document.getElementById('sf-servings').value = parsed.servings||4;
+    document.getElementById('sf-ingredients').value = (parsed.ingredients||[]).join('\n');
+    document.getElementById('sf-steps').value = (parsed.steps||[]).join('\n');
+    document.getElementById('scan-status').style.display='none';
+    document.getElementById('scan-result').style.display='flex';
+  } catch(e) { document.getElementById('scan-status').style.display='none'; document.getElementById('scan-preview-wrap').style.display='block'; alert('Could not read the recipe. Please try again.'); }
+}
+
+async function extractRecipeFromUrl() {
+  const urlInput = document.getElementById('url-input');
+  const url = urlInput.value.trim();
+  if (!url) { alert('Please enter a recipe URL.'); return; }
+  if (!requireApiKey('Import from URL')) return;
+  document.getElementById('url-input-zone').style.display='none';
+  document.getElementById('url-status').style.display='flex';
+  document.getElementById('url-result').style.display='none';
+
+  // Use a CORS proxy to fetch the page HTML
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  try {
+    const proxyRes = await fetch(proxyUrl);
+    const proxyData = await proxyRes.json();
+    const pageHtml = proxyData.contents || '';
+    // Strip tags, keep text, truncate to ~12000 chars for the model
+    const pageText = pageHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi,'')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'')
+      .replace(/<[^>]+>/g,' ')
+      .replace(/\s{2,}/g,' ')
+      .trim()
+      .slice(0, 12000);
+
+    const res = await fetch(geminiUrl('gemini-2.0-flash:generateContent'), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ contents:[{ parts:[{ text:
+        `The following is the text content of a recipe webpage. Extract the recipe and return ONLY a JSON object (no markdown, no backticks) with: name (string), emoji (single relevant emoji), category (breakfast/lunch/dinner/dessert/snack), time (number in minutes, estimate if not shown), servings (number, estimate if not shown), ingredients (array of strings), steps (array of strings). If this page does not appear to contain a recipe, return {"error":"not a recipe"}.\n\nPage content:\n${pageText}`
+      }] }] })
+    });
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    if (parsed.error) {
+      document.getElementById('url-status').style.display='none';
+      document.getElementById('url-input-zone').style.display='block';
+      alert("Couldn't find a recipe at that URL. Please try a different link.");
+      return;
+    }
+    document.getElementById('uf-name').value = parsed.name||'';
+    document.getElementById('uf-emoji').value = parsed.emoji||'🍽️';
+    document.getElementById('uf-cat').value = ['breakfast','lunch','dinner','dessert','snack'].includes(parsed.category) ? parsed.category : 'dinner';
+    document.getElementById('uf-time').value = parsed.time||30;
+    document.getElementById('uf-servings').value = parsed.servings||4;
+    document.getElementById('uf-ingredients').value = (parsed.ingredients||[]).join('\n');
+    document.getElementById('uf-steps').value = (parsed.steps||[]).join('\n');
+    document.getElementById('url-status').style.display='none';
+    document.getElementById('url-result').style.display='flex';
+  } catch(e) {
+    document.getElementById('url-status').style.display='none';
+    document.getElementById('url-input-zone').style.display='block';
+    alert('Could not fetch the recipe. The site may block external requests — try copying the URL again or use a different recipe source.');
+  }
+}
+
+function saveRecipe() {
+  let name, emoji, category, time, servings, ingredients, steps;
+  const fromScan = currentTab==='camera' && document.getElementById('scan-result').style.display!=='none';
+  const fromUrl  = currentTab==='url'    && document.getElementById('url-result').style.display!=='none';
+  if (fromScan) {
+    name=document.getElementById('sf-name').value.trim(); emoji=document.getElementById('sf-emoji').value.trim()||'🍽️';
+    category=document.getElementById('sf-cat').value; time=parseInt(document.getElementById('sf-time').value)||30;
+    servings=parseInt(document.getElementById('sf-servings').value)||4;
+    ingredients=document.getElementById('sf-ingredients').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    steps=document.getElementById('sf-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  } else if (fromUrl) {
+    name=document.getElementById('uf-name').value.trim(); emoji=document.getElementById('uf-emoji').value.trim()||'🍽️';
+    category=document.getElementById('uf-cat').value; time=parseInt(document.getElementById('uf-time').value)||30;
+    servings=parseInt(document.getElementById('uf-servings').value)||4;
+    ingredients=document.getElementById('uf-ingredients').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    steps=document.getElementById('uf-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  } else {
+    name=document.getElementById('f-name').value.trim(); emoji=document.getElementById('f-emoji').value.trim()||'🍽️';
+    category=document.getElementById('f-cat').value; time=parseInt(document.getElementById('f-time').value)||30;
+    servings=parseInt(document.getElementById('f-servings').value)||4;
+    ingredients=document.getElementById('f-ingredients').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    steps=document.getElementById('f-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  }
+  if (!name) { alert('Please enter a recipe name.'); return; }
+  recipes.unshift({ id:nextId++, name, emoji, category, time, servings, ingredients, steps, photo:scannedImageData||null, added:Date.now() });
+  saveToStorage(); scannedImageData=null; closeModal(); renderCards();
+}
+
+function printRecipe(id) {
+  const r = recipes.find(x=>x.id===id); if (!r) return;
+  const printArea = document.getElementById('print-area');
+  printArea.innerHTML = `<style>@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');body{font-family:'DM Sans',Georgia,serif;max-width:600px;margin:40px auto;padding:0 24px;color:#1a1612;background:#fff;}h1{font-family:'DM Serif Display',Georgia,serif;font-size:30px;margin-bottom:6px;letter-spacing:-0.5px;}h2{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:#a09a94;border-bottom:1px solid #e8e0d5;padding-bottom:6px;margin:22px 0 12px;}ul,ol{padding-left:20px;}li{margin-bottom:8px;font-size:15px;line-height:1.6;}.meta{font-size:14px;color:#6b6560;display:flex;gap:20px;margin-bottom:6px;}.tag{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;display:inline-block;background:#EEF0FE;color:#3C3489;}.photo{width:100%;max-height:240px;object-fit:cover;border-radius:12px;margin-bottom:20px;}.emoji-hero{font-size:56px;margin-bottom:10px;display:block;}</style>${r.photo?`<img class="photo" src="${r.photo}" alt="${r.name}" />`:`<span class="emoji-hero">${r.emoji}</span>`}<h1>${r.name}</h1><div class="meta"><span>⏱ ${r.time} minutes</span><span>👥 ${r.servings} servings</span></div><span class="tag">${tagLabel(r.category)}</span><h2>Ingredients</h2><ul>${r.ingredients.map(i=>`<li>${i}</li>`).join('')}</ul><h2>Method</h2><ol>${r.steps.map(s=>`<li>${s}</li>`).join('')}</ol>`;
+  window.print();
+  setTimeout(() => { printArea.innerHTML = ''; }, 1000);
+}
+
+function openDetail(id) {
+  const r = recipes.find(x=>x.id===id); if (!r) return;
+  const thumb = r.photo ? `<img src="${r.photo}" alt="${r.name}" />` : r.emoji;
+  document.getElementById('detail-content-inner').innerHTML = `
+    <div class="modal-header">
+      <h3 id="detail-title" style="font-family:var(--serif);">${r.name}</h3>
+      <div class="detail-actions">
+        <button onclick="printRecipe(${r.id})"><i class="ti ti-printer"></i> Print</button>
+        <button class="del-btn" onclick="deleteRecipe(${r.id})"><i class="ti ti-trash"></i></button>
+        <button class="close-btn" onclick="closeDetail()" aria-label="Close" style="margin-left:2px;"><i class="ti ti-x"></i></button>
+      </div>
+    </div>
+    <div class="detail-hero">
+      <div class="detail-thumb" style="background:${bgColor(r.category)}">${thumb}</div>
+      <div class="detail-info">
+        <h2>${r.name}</h2>
+        <div class="detail-meta">
+          <span><i class="ti ti-clock"></i> ${r.time} min</span>
+          <span><i class="ti ti-users"></i> ${r.servings} servings</span>
+          <span class="card-tag ${tagClass(r.category)}">${tagLabel(r.category)}</span>
+        </div>
+      </div>
+    </div>
+    <div class="detail-content">
+      <div class="detail-section"><h4>Ingredients</h4><ul class="ingredient-list">${(r.ingredients.length?r.ingredients:['No ingredients listed.']).map(i=>`<li><i class="ti ti-circle-check"></i>${i}</li>`).join('')}</ul></div>
+      <div class="detail-section"><h4>Steps</h4><ol class="steps-list">${(r.steps.length?r.steps:['No steps listed.']).map((s,idx)=>`<li><span class="step-num">${idx+1}</span><span>${s}</span></li>`).join('')}</ol></div>
+    </div>`;
+  document.getElementById('detail-overlay').style.display='flex';
+}
+
+function closeDetail() { document.getElementById('detail-overlay').style.display='none'; }
+
+function deleteRecipe(id) {
+  if (!confirm('Delete this recipe?')) return;
+  recipes = recipes.filter(r=>r.id!==id); saveToStorage(); closeDetail(); renderCards();
+}
+
+document.getElementById('search-input').addEventListener('input', e => { searchTerm=e.target.value; renderCards(); });
+
+async function askClaude() {
+  const input = document.getElementById('ai-input');
+  const query = input.value.trim(); if (!query) return;
+  if (!requireApiKey('Ask Gemini')) return;
+  const responseEl = document.getElementById('ai-response');
+  responseEl.style.display='block'; responseEl.className='ai-response loading';
+  responseEl.innerHTML=`<span style="color:var(--accent);font-size:13px;font-weight:500;"><i class="ti ti-sparkles"></i> Thinking…</span><span class="dot-anim"><span>.</span><span>.</span><span>.</span></span>`;
+  const recipeNames = recipes.map(r=>r.name).join(', ')||'none yet';
+  try {
+    const systemInstruction = `You are a helpful cooking assistant in a recipe app called Mise en place. User's saved recipes: ${recipeNames}. Give concise, friendly advice under 80 words. No markdown.`;
+    const res = await fetch(geminiUrl('gemini-2.0-flash:generateContent'), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ system_instruction:{ parts:[{ text:systemInstruction }] }, contents:[{ parts:[{ text:query }] }] }) });
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'Sorry, could not get a response.';
+    responseEl.className='ai-response'; responseEl.textContent=text; input.value='';
+  } catch(e) { responseEl.className='ai-response'; responseEl.textContent='Something went wrong. Please try again.'; }
+}
+
+document.getElementById('ai-input').addEventListener('keydown', e => { if(e.key==='Enter') askClaude(); });
+
+renderCards();
+checkApiKeyOnLaunch();
+</script>
+</body>
+</html>
