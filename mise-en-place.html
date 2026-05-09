@@ -322,6 +322,8 @@ html, body { height: 100%; background: var(--cream); font-family: var(--sans); c
     <div class="tab-bar">
       <button class="tab active" id="tab-manual" onclick="switchTab('manual')"><i class="ti ti-pencil"></i> Manual</button>
       <button class="tab" id="tab-camera" onclick="switchTab('camera')"><i class="ti ti-camera"></i> Scan from photo</button>
+      <button class="tab" id="tab-url" onclick="switchTab('url')"><i class="ti ti-link"></i> Import from URL</button>
+      <button class="tab" id="tab-video" onclick="switchTab('video')"><i class="ti ti-video"></i> Import from video</button>
     </div>
     <div class="modal-body">
       <div class="tab-panel active" id="panel-manual">
@@ -364,6 +366,75 @@ html, body { height: 100%; background: var(--cream); font-family: var(--sans); c
           </div>
           <div class="form-group"><label>Ingredients</label><textarea id="sf-ingredients" style="height:70px;"></textarea></div>
           <div class="form-group"><label>Steps</label><textarea id="sf-steps" style="height:70px;"></textarea></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="panel-url">
+        <div id="url-input-zone">
+          <div class="scan-zone" style="cursor:default;">
+            <i class="ti ti-world"></i>
+            <p>Paste a link to any recipe page — from food blogs, NYT Cooking, AllRecipes, and more</p>
+          </div>
+          <div class="form-group" style="margin-top:10px;">
+            <label>Recipe URL</label>
+            <input type="url" id="url-input" placeholder="https://www.example.com/recipes/pasta" style="font-size:14px;" />
+          </div>
+          <button class="scan-extract-btn" style="margin-top:4px;" onclick="extractRecipeFromUrl()"><i class="ti ti-sparkles"></i> Import recipe with AI</button>
+        </div>
+        <div id="url-status" style="display:none;" class="scan-status"><span class="dot-anim"><span>.</span><span>.</span><span>.</span></span> Fetching &amp; reading recipe…</div>
+        <div id="url-result" style="display:none;">
+          <div class="scan-status" style="margin-bottom:10px;"><i class="ti ti-check"></i> Recipe imported — review and save</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label>Recipe name</label><input type="text" id="uf-name" /></div>
+            <div class="form-group" style="flex:1;"><label>Emoji</label><input type="text" id="uf-emoji" maxlength="2" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Category</label><select id="uf-cat"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="dessert">Dessert</option><option value="snack">Snack</option></select></div>
+            <div class="form-group"><label>Time (mins)</label><input type="number" id="uf-time" min="1" /></div>
+            <div class="form-group"><label>Servings</label><input type="number" id="uf-servings" min="1" /></div>
+          </div>
+          <div class="form-group"><label>Ingredients</label><textarea id="uf-ingredients" style="height:70px;"></textarea></div>
+          <div class="form-group"><label>Steps</label><textarea id="uf-steps" style="height:70px;"></textarea></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="panel-video">
+        <div id="video-server-notice" class="scan-status" style="background:var(--accentbg);color:var(--accent);flex-direction:column;align-items:flex-start;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;font-weight:500;"><i class="ti ti-server"></i> Backend server required</div>
+          <div style="font-size:12px;line-height:1.6;">Video extraction needs a running backend. Enter your server URL below, or follow the README to deploy one free on Railway.</div>
+          <div class="form-group" style="width:100%;margin-top:2px;">
+            <label>Backend server URL</label>
+            <input type="url" id="video-server-url" placeholder="https://your-app.railway.app" style="font-size:13px;" oninput="saveServerUrl()" />
+          </div>
+        </div>
+        <div id="video-upload-zone" style="margin-top:4px;">
+          <div class="scan-zone" onclick="document.getElementById('video-file').click()" style="cursor:pointer;">
+            <i class="ti ti-video"></i>
+            <p>Upload a Facebook video (or any .mp4 / .mov file) — AI will watch it and extract the recipe</p>
+            <button class="scan-pick-btn" onclick="event.stopPropagation();document.getElementById('video-file').click()"><i class="ti ti-upload"></i> Choose video</button>
+          </div>
+          <input type="file" id="video-file" accept="video/*" style="display:none;" onchange="handleVideoUpload(event)" />
+        </div>
+        <div id="video-selected" style="display:none;">
+          <div class="scan-status" style="justify-content:space-between;">
+            <span style="display:flex;align-items:center;gap:8px;"><i class="ti ti-file-video"></i> <span id="video-filename">video.mp4</span></span>
+            <span id="video-filesize" style="font-size:11px;opacity:0.7;"></span>
+          </div>
+          <button class="scan-extract-btn" onclick="extractRecipeFromVideo()"><i class="ti ti-sparkles"></i> Extract recipe from video</button>
+          <div style="text-align:center;margin-top:6px;"><span style="font-size:11px;color:var(--ink3);cursor:pointer;text-decoration:underline;" onclick="clearVideoFile()">Choose a different video</span></div>
+        </div>
+        <div id="video-status" style="display:none;" class="scan-status"><span class="dot-anim"><span>.</span><span>.</span><span>.</span></span> <span id="video-status-text">Uploading video…</span></div>
+        <div id="video-result" style="display:none;">
+          <div class="scan-status" style="margin-bottom:10px;"><i class="ti ti-check"></i> Recipe extracted from video — review and save</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label>Recipe name</label><input type="text" id="vf-name" /></div>
+            <div class="form-group" style="flex:1;"><label>Emoji</label><input type="text" id="vf-emoji" maxlength="2" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Category</label><select id="vf-cat"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="dessert">Dessert</option><option value="snack">Snack</option></select></div>
+            <div class="form-group"><label>Time (mins)</label><input type="number" id="vf-time" min="1" /></div>
+            <div class="form-group"><label>Servings</label><input type="number" id="vf-servings" min="1" /></div>
+          </div>
+          <div class="form-group"><label>Ingredients</label><textarea id="vf-ingredients" style="height:70px;"></textarea></div>
+          <div class="form-group"><label>Steps</label><textarea id="vf-steps" style="height:70px;"></textarea></div>
         </div>
       </div>
     </div>
@@ -558,6 +629,11 @@ function openAddModal(tab) {
   document.getElementById('f-cat').value = 'dinner';
   clearScanImage();
   document.getElementById('scan-result').style.display = 'none';
+  const urlInput = document.getElementById('url-input'); if (urlInput) urlInput.value='';
+  document.getElementById('url-result').style.display = 'none';
+  document.getElementById('url-status').style.display = 'none';
+  clearVideoFile();
+  document.getElementById('video-result').style.display = 'none';
   document.getElementById('modal-overlay').style.display = 'flex';
   switchTab(tab||'manual');
 }
@@ -566,10 +642,21 @@ function closeModal() { document.getElementById('modal-overlay').style.display='
 
 function switchTab(tab) {
   currentTab = tab;
-  document.getElementById('tab-manual').classList.toggle('active', tab==='manual');
-  document.getElementById('tab-camera').classList.toggle('active', tab==='camera');
-  document.getElementById('panel-manual').classList.toggle('active', tab==='manual');
-  document.getElementById('panel-camera').classList.toggle('active', tab==='camera');
+  ['manual','camera','url','video'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('active', tab===t);
+    document.getElementById('panel-'+t).classList.toggle('active', tab===t);
+  });
+  if (tab === 'url') {
+    document.getElementById('url-result').style.display='none';
+    document.getElementById('url-status').style.display='none';
+  }
+  if (tab === 'video') {
+    document.getElementById('video-result').style.display='none';
+    document.getElementById('video-status').style.display='none';
+    // Restore server URL from storage
+    const saved = localStorage.getItem('mise-backend-url')||'';
+    document.getElementById('video-server-url').value = saved;
+  }
 }
 
 function handleImageUpload(event) {
@@ -621,15 +708,168 @@ async function extractRecipeFromImage() {
   } catch(e) { document.getElementById('scan-status').style.display='none'; document.getElementById('scan-preview-wrap').style.display='block'; alert('Could not read the recipe. Please try again.'); }
 }
 
+async function extractRecipeFromUrl() {
+  const urlInput = document.getElementById('url-input');
+  const url = urlInput.value.trim();
+  if (!url) { alert('Please enter a recipe URL.'); return; }
+  if (!requireApiKey('Import from URL')) return;
+  document.getElementById('url-input-zone').style.display='none';
+  document.getElementById('url-status').style.display='flex';
+  document.getElementById('url-result').style.display='none';
+
+  // Use a CORS proxy to fetch the page HTML
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  try {
+    const proxyRes = await fetch(proxyUrl);
+    const proxyData = await proxyRes.json();
+    const pageHtml = proxyData.contents || '';
+    // Strip tags, keep text, truncate to ~12000 chars for the model
+    const pageText = pageHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi,'')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'')
+      .replace(/<[^>]+>/g,' ')
+      .replace(/\s{2,}/g,' ')
+      .trim()
+      .slice(0, 12000);
+
+    const res = await fetch(geminiUrl('gemini-2.0-flash:generateContent'), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ contents:[{ parts:[{ text:
+        `The following is the text content of a recipe webpage. Extract the recipe and return ONLY a JSON object (no markdown, no backticks) with: name (string), emoji (single relevant emoji), category (breakfast/lunch/dinner/dessert/snack), time (number in minutes, estimate if not shown), servings (number, estimate if not shown), ingredients (array of strings), steps (array of strings). If this page does not appear to contain a recipe, return {"error":"not a recipe"}.\n\nPage content:\n${pageText}`
+      }] }] })
+    });
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    if (parsed.error) {
+      document.getElementById('url-status').style.display='none';
+      document.getElementById('url-input-zone').style.display='block';
+      alert("Couldn't find a recipe at that URL. Please try a different link.");
+      return;
+    }
+    document.getElementById('uf-name').value = parsed.name||'';
+    document.getElementById('uf-emoji').value = parsed.emoji||'🍽️';
+    document.getElementById('uf-cat').value = ['breakfast','lunch','dinner','dessert','snack'].includes(parsed.category) ? parsed.category : 'dinner';
+    document.getElementById('uf-time').value = parsed.time||30;
+    document.getElementById('uf-servings').value = parsed.servings||4;
+    document.getElementById('uf-ingredients').value = (parsed.ingredients||[]).join('\n');
+    document.getElementById('uf-steps').value = (parsed.steps||[]).join('\n');
+    document.getElementById('url-status').style.display='none';
+    document.getElementById('url-result').style.display='flex';
+  } catch(e) {
+    document.getElementById('url-status').style.display='none';
+    document.getElementById('url-input-zone').style.display='block';
+    alert('Could not fetch the recipe. The site may block external requests — try copying the URL again or use a different recipe source.');
+  }
+}
+
+let videoFile = null;
+
+function saveServerUrl() {
+  const url = document.getElementById('video-server-url').value.trim();
+  if (url) localStorage.setItem('mise-backend-url', url);
+}
+
+function handleVideoUpload(event) {
+  const file = event.target.files[0]; if (!file) return;
+  videoFile = file;
+  document.getElementById('video-filename').textContent = file.name;
+  document.getElementById('video-filesize').textContent = (file.size / 1024 / 1024).toFixed(1) + ' MB';
+  document.getElementById('video-upload-zone').style.display = 'none';
+  document.getElementById('video-selected').style.display = 'block';
+  document.getElementById('video-result').style.display = 'none';
+}
+
+function clearVideoFile() {
+  videoFile = null;
+  const vf = document.getElementById('video-file'); if (vf) vf.value = '';
+  document.getElementById('video-upload-zone').style.display = 'block';
+  document.getElementById('video-selected').style.display = 'none';
+  document.getElementById('video-result').style.display = 'none';
+  document.getElementById('video-status').style.display = 'none';
+}
+
+async function extractRecipeFromVideo() {
+  if (!videoFile) return;
+  const serverUrl = (localStorage.getItem('mise-backend-url') || '').replace(/\/$/, '');
+  if (!serverUrl) {
+    alert('Please enter your backend server URL first.');
+    document.getElementById('video-server-url').focus();
+    return;
+  }
+  document.getElementById('video-selected').style.display = 'none';
+  document.getElementById('video-status').style.display = 'flex';
+  document.getElementById('video-result').style.display = 'none';
+
+  const statusText = document.getElementById('video-status-text');
+
+  try {
+    statusText.textContent = 'Uploading video…';
+    const formData = new FormData();
+    formData.append('video', videoFile, videoFile.name);
+
+    const res = await fetch(`${serverUrl}/extract-video`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    statusText.textContent = 'Analysing with AI…';
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Server error' }));
+      throw new Error(err.error || `Server returned ${res.status}`);
+    }
+
+    const parsed = await res.json();
+
+    if (parsed.error) {
+      document.getElementById('video-status').style.display = 'none';
+      document.getElementById('video-selected').style.display = 'block';
+      alert("Couldn't find a recipe in that video. Please try a different one.");
+      return;
+    }
+
+    document.getElementById('vf-name').value = parsed.name || '';
+    document.getElementById('vf-emoji').value = parsed.emoji || '🍽️';
+    document.getElementById('vf-cat').value = ['breakfast','lunch','dinner','dessert','snack'].includes(parsed.category) ? parsed.category : 'dinner';
+    document.getElementById('vf-time').value = parsed.time || 30;
+    document.getElementById('vf-servings').value = parsed.servings || 4;
+    document.getElementById('vf-ingredients').value = (parsed.ingredients || []).join('\n');
+    document.getElementById('vf-steps').value = (parsed.steps || []).join('\n');
+
+    document.getElementById('video-status').style.display = 'none';
+    document.getElementById('video-result').style.display = 'flex';
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('video-status').style.display = 'none';
+    document.getElementById('video-selected').style.display = 'block';
+    alert(`Could not extract recipe: ${err.message}\n\nMake sure your backend server URL is correct and the server is running.`);
+  }
+}
+
 function saveRecipe() {
   let name, emoji, category, time, servings, ingredients, steps;
   const fromScan = currentTab==='camera' && document.getElementById('scan-result').style.display!=='none';
+  const fromUrl   = currentTab==='url'   && document.getElementById('url-result').style.display!=='none';
+  const fromVideo = currentTab==='video' && document.getElementById('video-result').style.display!=='none';
   if (fromScan) {
     name=document.getElementById('sf-name').value.trim(); emoji=document.getElementById('sf-emoji').value.trim()||'🍽️';
     category=document.getElementById('sf-cat').value; time=parseInt(document.getElementById('sf-time').value)||30;
     servings=parseInt(document.getElementById('sf-servings').value)||4;
     ingredients=document.getElementById('sf-ingredients').value.split('\n').map(s=>s.trim()).filter(Boolean);
     steps=document.getElementById('sf-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  } else if (fromVideo) {
+    name=document.getElementById('vf-name').value.trim(); emoji=document.getElementById('vf-emoji').value.trim()||'🍽️';
+    category=document.getElementById('vf-cat').value; time=parseInt(document.getElementById('vf-time').value)||30;
+    servings=parseInt(document.getElementById('vf-servings').value)||4;
+    ingredients=document.getElementById('vf-ingredients').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    steps=document.getElementById('vf-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  } else if (fromUrl) {
+    name=document.getElementById('uf-name').value.trim(); emoji=document.getElementById('uf-emoji').value.trim()||'🍽️';
+    category=document.getElementById('uf-cat').value; time=parseInt(document.getElementById('uf-time').value)||30;
+    servings=parseInt(document.getElementById('uf-servings').value)||4;
+    ingredients=document.getElementById('uf-ingredients').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    steps=document.getElementById('uf-steps').value.split('\n').map(s=>s.trim()).filter(Boolean);
   } else {
     name=document.getElementById('f-name').value.trim(); emoji=document.getElementById('f-emoji').value.trim()||'🍽️';
     category=document.getElementById('f-cat').value; time=parseInt(document.getElementById('f-time').value)||30;
