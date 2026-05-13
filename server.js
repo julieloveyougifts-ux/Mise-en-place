@@ -70,37 +70,29 @@ app.post('/extract-video-url', async (req, res) => {
   if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set.' });
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'No URL provided.' });
-  console.log(`Downloading: ${url}`);
-  let tmpDir, tmpFile;
+  console.log(`Extracting recipe from URL via Gemini: ${url}`);
   try {
-    tmpDir = await mkdtemp(join(tmpdir(), 'mise-'));
-    tmpFile = join(tmpDir, 'video.mp4');
-    let cleanUrl = url;
-    try {
-      const u = new URL(url);
-      if (u.hostname.includes('facebook.com') && u.pathname.includes('watch')) {
-        const v = u.searchParams.get('v');
-        if (v) cleanUrl = `https://www.facebook.com/watch/?v=${v}`;
-      }
-    } catch {}
-    console.log(`Clean URL: ${cleanUrl}`);
-    await youtubeDl(cleanUrl, {
-      noPlaylist: true,
-      format: 'best[ext=mp4][filesize<150M]/best',
-      mergeOutputFormat: 'mp4',
-      output: tmpFile,
-      noWarnings: true,
-      noCheckCertificates: true,
+    // Use Gemini's native video URL support — no download needed
+    const prompt = 'Watch this cooking video and extract the recipe. Return ONLY JSON (no markdown) with: name, emoji, category (breakfast/lunch/dinner/dessert/snack), time (number minutes), servings (number), ingredients (string[]), steps (string[]). If not a recipe return {"error":"not a recipe"}.';
+    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: `Video URL: ${url}\n\n${prompt}` },
+          ]
+        }]
+      })
     });
-    const buffer = await readFile(tmpFile);
-    console.log(`Downloaded: ${(buffer.length/1024/1024).toFixed(1)} MB`);
-    const parsed = await uploadAndExtract(buffer, 'video/mp4', 'recipe-video.mp4');
+    const gd = await geminiRes.json();
+    const raw = gd.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+    console.log('Gemini response:', raw.slice(0, 200));
+    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
     return res.json(parsed);
   } catch (err) {
     console.error('Extract error:', err.message);
-    return res.status(500).json({ error: 'Could not download that video. Make sure it is a public Facebook video.' });
-  } finally {
-    if (tmpFile) unlink(tmpFile).catch(() => {});
+    return res.status(500).json({ error: 'Could not extract recipe from that video URL.' });
   }
 });
 
