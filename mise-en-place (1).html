@@ -779,18 +779,13 @@ async function extractFromVideo(){
   if(!videoUrl){alert('Paste a Facebook video URL.');return;}
 
   // Read server URL from field first (in case not yet saved), then fall back to storage
-  const serverUrlField=document.getElementById('video-server-url');
-  const fieldVal=(serverUrlField?.value||'').trim();
-  if(fieldVal) localStorage.setItem('mise-backend-url', fieldVal);
-  const serverUrl=(fieldVal||BACKEND||'').replace(/\/+$/,'');
 
-  if(!serverUrl){alert('Please enter your backend server URL in the field above.');serverUrlField?.focus();return;}
 
   document.getElementById('video-url-zone').style.display='none';
   document.getElementById('video-status').style.display='flex';
   document.getElementById('video-status-text').textContent='Downloading video…';
   try{
-    const res=await fetch(`${serverUrl}/extract-video-url`,{
+    const res=await fetch(`${BACKEND}/extract-video-url`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({url:videoUrl})
