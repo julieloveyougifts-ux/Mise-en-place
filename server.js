@@ -1,4 +1,3 @@
-// v2
 import express from 'express';
 import fetch from 'node-fetch';
 import cors from 'cors';
@@ -73,22 +72,52 @@ app.post('/extract-video-url', async (req, res) => {
   if (!url) return res.status(400).json({ error: 'No URL provided.' });
   console.log(`Extracting recipe from URL via Gemini: ${url}`);
   try {
-    // Use Gemini's native video URL support — no download needed
-    const prompt = 'Watch this cooking video and extract the recipe. Return ONLY JSON (no markdown) with: name, emoji, category (breakfast/lunch/dinner/dessert/snack), time (number minutes), servings (number), ingredients (string[]), steps (string[]). If not a recipe return {"error":"not a recipe"}.';
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: `Video URL: ${url}\n\n${prompt}` },
-          ]
-        }]
-      })
-    });
-    const gd = await geminiRes.json();
-    const raw = gd.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-    console.log('Gemini response:', raw.slice(0, 200));
+    const prompt = 'Watch this cooking video and extract the recipe. Return ONLY JSON (no markdown, no backticks) with these exact keys: name (string), emoji (string), category (one of: breakfast/lunch/dinner/dessert/snack), time (number, minutes), servings (number), ingredients (array of strings), steps (array of strings). If this is not a cooking recipe video return {"error":"not a recipe"}.';
+
+    // First try with video_metadata URL part (works for YouTube)
+    // Fall back to fetching page text for Facebook
+    let raw = '';
+    try {
+      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { video_metadata: { video_url: url } },
+              { text: prompt }
+            ]
+          }]
+        })
+      });
+      const gd = await geminiRes.json();
+      raw = gd.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+      console.log('Gemini video_metadata response:', raw.slice(0, 300));
+    } catch(e) {
+      console.log('video_metadata failed, trying URL fetch fallback:', e.message);
+    }
+
+    // If empty, try fetching the page and extracting text
+    if (!raw || raw.length < 10) {
+      console.log('Falling back to page text extraction...');
+      const pageRes = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      const pageHtml = await pageRes.text();
+      const pageText = pageHtml.replace(/<[^>]+>/g,' ').replace(/\s{2,}/g,' ').trim().slice(0,12000);
+      const geminiRes2 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `Extract any recipe information from this Facebook video page. ${prompt}\n\nPage content: ${pageText}` }] }]
+        })
+      });
+      const gd2 = await geminiRes2.json();
+      raw = gd2.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+      console.log('Page text response:', raw.slice(0, 300));
+    }
+
+    if (!raw || raw.length < 10) {
+      return res.status(422).json({ error: 'Could not extract recipe from that video. Try a different video or use the URL import option instead.' });
+    }
     const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
     return res.json(parsed);
   } catch (err) {
