@@ -747,6 +747,7 @@ function buildModalBody(tab){
     </div>
     <div id="video-file-selected" style="display:none">
       <div class="scan-status" style="margin-bottom:8px;align-items:center"><i class="ti ti-video"></i> <span id="video-file-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 6px"></span><button onclick="clearVideoFile()" style="background:none;border:none;cursor:pointer;color:var(--ink3);flex-shrink:0"><i class="ti ti-x"></i></button></div>
+      <div class="form-group" style="margin-top:8px"><label>Recipe caption or description <span style="font-weight:400;color:var(--ink3)">(optional)</span></label><textarea id="video-caption-text" style="height:80px" placeholder="Paste ingredients list or recipe description from the Facebook post here..."></textarea></div>
       <button class="scan-extract-btn" onclick="extractFromVideoFile()"><i class="ti ti-sparkles"></i> Extract recipe from video</button>
     </div>
     <div id="video-url-zone" style="display:none">
@@ -860,6 +861,7 @@ function handleVideoFileSelect(e){
 function clearVideoFile(){
   selectedVideoFile=null;
   const inp=document.getElementById('video-file-input');if(inp)inp.value='';
+  const cap=document.getElementById('video-caption-text');if(cap)cap.value='';
   document.getElementById('video-file-zone').style.display='block';
   document.getElementById('video-file-selected').style.display='none';
   document.getElementById('video-result').style.display='none';
@@ -873,6 +875,8 @@ async function extractFromVideoFile(){
   try{
     const formData=new FormData();
     formData.append('video',selectedVideoFile);
+    const captionText=(document.getElementById('video-caption-text')?.value||'').trim();
+    if(captionText)formData.append('captionText',captionText);
     const res=await fetch(`${BACKEND}/extract-video-file`,{method:'POST',body:formData});
     document.getElementById('video-status-text').textContent='Analysing with AI…';
     if(!res.ok){

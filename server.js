@@ -20,7 +20,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500
 
 app.get('/', (req, res) => res.json({ status: 'ok', service: 'Mise en place video backend' }));
 
-async function uploadAndExtract(buffer, mimetype, displayName) {
+async function uploadAndExtract(buffer, mimetype, displayName, captionText = '') {
   const size = buffer.length;
   const initRes = await fetch(`https://generativelanguage.googleapis.com/upload/v1beta/files?key=${GEMINI_API_KEY}`, {
     method: 'POST',
@@ -60,7 +60,7 @@ async function uploadAndExtract(buffer, mimetype, displayName) {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts: [
       { file_data: { mime_type: mimetype, file_uri: fileUri } },
-      { text: 'Watch this cooking video and extract the recipe. Return ONLY JSON (no markdown) with: name, emoji, category (breakfast/lunch/dinner/dessert/snack), time (number minutes), servings (number), ingredients (string[]), steps (string[]). If not a recipe return {"error":"not a recipe"}.' }
+      { text: 'Watch this cooking video and extract the recipe. Return ONLY JSON (no markdown) with: name, emoji, category (breakfast/lunch/dinner/dessert/snack), time (number minutes), servings (number), ingredients (string[]), steps (string[]). If not a recipe return {"error":"not a recipe"}.' + (captionText ? ` The video creator also provided this recipe description: ${captionText}. Use this along with what you see in the video to extract the complete recipe.` : '') }
     ]}]})
   });
   const gd = await geminiRes.json();
@@ -77,9 +77,10 @@ async function uploadAndExtract(buffer, mimetype, displayName) {
 app.post('/extract-video-file', upload.single('video'), async (req, res) => {
   if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set.' });
   if (!req.file) return res.status(400).json({ error: 'No video file provided.' });
+  const captionText = req.body.captionText || '';
   console.log(`Extracting recipe from uploaded file: ${req.file.originalname} (${req.file.size} bytes)`);
   try {
-    const recipe = await uploadAndExtract(req.file.buffer, req.file.mimetype, req.file.originalname);
+    const recipe = await uploadAndExtract(req.file.buffer, req.file.mimetype, req.file.originalname, captionText);
     return res.json(recipe);
   } catch (err) {
     console.error('Extract error:', err.message);
