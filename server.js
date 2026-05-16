@@ -64,9 +64,14 @@ async function uploadAndExtract(buffer, mimetype, displayName) {
     ]}]})
   });
   const gd = await geminiRes.json();
-  const raw = gd.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+  const raw = (gd.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '').replace(/```json|```/g, '').trim();
   fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${GEMINI_API_KEY}`, { method: 'DELETE' }).catch(() => {});
-  return JSON.parse(raw.replace(/```json|```/g, '').trim());
+  if (!raw) throw new Error('Gemini could not find a recipe in this video. Try a shorter clip showing the cooking and ingredients clearly.');
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error('Gemini could not find a recipe in this video. Try a shorter clip showing the cooking and ingredients clearly.');
+  }
 }
 
 app.post('/extract-video-file', upload.single('video'), async (req, res) => {
