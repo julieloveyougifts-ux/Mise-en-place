@@ -1,6 +1,6 @@
 {
   "name": "mise-en-place-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Video recipe extraction backend for Mise en place",
   "type": "module",
   "main": "server.js",
@@ -13,6 +13,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
     "youtube-dl-exec": "^3.0.0"
   }

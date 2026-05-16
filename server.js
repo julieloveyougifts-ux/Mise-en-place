@@ -1,6 +1,7 @@
 import express from 'express';
 import fetch from 'node-fetch';
 import cors from 'cors';
+import multer from 'multer';
 import { mkdtemp, unlink } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -14,6 +15,8 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 app.use(cors({ origin: '*', methods: ['GET','POST','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] }));
 app.options('*', cors());
 app.use(express.json());
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 * 1024 } });
 
 app.get('/', (req, res) => res.json({ status: 'ok', service: 'Mise en place video backend' }));
 
@@ -65,6 +68,19 @@ async function uploadAndExtract(buffer, mimetype, displayName) {
   fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${GEMINI_API_KEY}`, { method: 'DELETE' }).catch(() => {});
   return JSON.parse(raw.replace(/```json|```/g, '').trim());
 }
+
+app.post('/extract-video-file', upload.single('video'), async (req, res) => {
+  if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set.' });
+  if (!req.file) return res.status(400).json({ error: 'No video file provided.' });
+  console.log(`Extracting recipe from uploaded file: ${req.file.originalname} (${req.file.size} bytes)`);
+  try {
+    const recipe = await uploadAndExtract(req.file.buffer, req.file.mimetype, req.file.originalname);
+    return res.json(recipe);
+  } catch (err) {
+    console.error('Extract error:', err.message);
+    return res.status(500).json({ error: err.message || 'Could not extract recipe from that video.' });
+  }
+});
 
 app.post('/extract-video-url', async (req, res) => {
   if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set.' });

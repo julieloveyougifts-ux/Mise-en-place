@@ -391,7 +391,7 @@ html,body{height:100%;background:var(--cream);font-family:var(--sans);color:var(
       <div class="import-card" onclick="openAddModal('manual')"><i class="ti ti-pencil"></i><strong>Manual entry</strong><span>Type or paste a recipe</span></div>
       <div class="import-card" onclick="openAddModal('camera')"><i class="ti ti-camera"></i><strong>Scan photo</strong><span>Photo of a recipe card or book</span></div>
       <div class="import-card" onclick="openAddModal('url')"><i class="ti ti-link"></i><strong>From URL</strong><span>Any recipe website link</span></div>
-      <div class="import-card" onclick="openAddModal('video')"><i class="ti ti-brand-facebook"></i><strong>From video</strong><span>Facebook or other video link</span></div>
+      <div class="import-card" onclick="openAddModal('video')"><i class="ti ti-video"></i><strong>From video</strong><span>Upload a file or paste a video URL</span></div>
     </div>
   </div>
 </div>
@@ -579,7 +579,7 @@ function getDefaultRecipes(){
 }
 let recipes=profileRecipes();
 let nextId=Math.max(0,...recipes.map(r=>r.id))+1;
-let currentCatFilter='all',currentCardView='grid',searchTerm='',currentTab='manual',scannedImageData=null,activeSection='recipes';
+let currentCatFilter='all',currentCardView='grid',searchTerm='',currentTab='manual',scannedImageData=null,activeSection='recipes',selectedVideoFile=null;
 
 function saveToStorage(){saveProfileRecipes();}
 
@@ -641,29 +641,21 @@ function closeSidebar(){document.getElementById('sidebar').classList.remove('ope
 
 // ── Modals ──
 function openModalEl(id){document.getElementById(id).style.display='flex';}
-function closeModal(id){document.getElementById(id).style.display='none';if(id==='modal-overlay')scannedImageData=null;}
+function closeModal(id){document.getElementById(id).style.display='none';if(id==='modal-overlay'){scannedImageData=null;selectedVideoFile=null;}}
 
 // ── Add recipe picker ──
 function openAddPicker(){openModalEl('picker-overlay');}
 function openAddModal(tab){
   closeModal('picker-overlay');
   currentTab=tab;
-  const titles={manual:'Manual entry',camera:'Scan a recipe photo',url:'Import from URL',video:'Import from Facebook video'};
+  const titles={manual:'Manual entry',camera:'Scan a recipe photo',url:'Import from URL',video:'Import from video'};
   document.getElementById('modal-title').textContent=titles[tab]||'Add a recipe';
   document.getElementById('modal-body-content').innerHTML=buildModalBody(tab);
   openModalEl('modal-overlay');
   if(tab==='video'){
-    const saved=BACKEND||'';
-    // Use setTimeout to ensure DOM is ready after innerHTML is set
     setTimeout(()=>{
-      const el=document.getElementById('video-server-url');
-      if(el){ el.value=saved; }
-      const urlZone=document.getElementById('video-url-zone');
-      if(urlZone) urlZone.style.display='block';
-      const vstatus=document.getElementById('video-status');
-      if(vstatus) vstatus.style.display='none';
-      const vresult=document.getElementById('video-result');
-      if(vresult) vresult.style.display='none';
+      selectedVideoFile=null;
+      switchVideoTab('file');
     },50);
   }
 }
@@ -722,16 +714,25 @@ function buildModalBody(tab){
     <div id="url-result" style="display:none"><div class="scan-status" style="margin-bottom:8px"><i class="ti ti-check"></i> Imported — review &amp; save</div>${reviewFields('uf-')}</div>`;
 
   if(tab==='video')return`
-    <div class="scan-status" style="background:var(--greenbg);color:var(--green);gap:7px;margin-bottom:4px;">
-      <i class="ti ti-server"></i> <span style="font-size:12px;font-weight:500">Backend connected</span>
+    <input type="hidden" id="video-server-url" value="${BACKEND}"/>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button id="vtab-file" onclick="switchVideoTab('file')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border-radius:10px;font-size:13px;font-family:var(--sans);cursor:pointer;font-weight:500;border:0.5px solid transparent;background:var(--ink);color:#fff"><i class="ti ti-upload"></i> Upload file</button>
+      <button id="vtab-url" onclick="switchVideoTab('url')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border-radius:10px;font-size:13px;font-family:var(--sans);cursor:pointer;font-weight:500;border:0.5px solid var(--border2);background:var(--cream2);color:var(--ink2)"><i class="ti ti-link"></i> Video URL</button>
     </div>
-    <input type="hidden" id="video-server-url" value="https://mise-en-place-backend-ixea-production.up.railway.app"/>
-    <div id="video-url-zone">
-      <div class="scan-zone" style="cursor:default"><i class="ti ti-brand-facebook"></i><p>Paste a public Facebook recipe video link</p></div>
-      <div class="form-group" style="margin-top:10px"><label>Facebook video URL</label><input type="url" id="video-url-input" placeholder="https://www.facebook.com/watch/?v=…"/></div>
+    <div id="video-file-zone">
+      <div class="scan-zone" onclick="document.getElementById('video-file-input').click()" style="cursor:pointer"><i class="ti ti-video"></i><p>Upload a cooking video file (MP4, MOV, etc.)</p><button class="scan-pick-btn" onclick="event.stopPropagation();document.getElementById('video-file-input').click()"><i class="ti ti-upload"></i> Choose video</button></div>
+      <input type="file" id="video-file-input" accept="video/*" style="display:none" onchange="handleVideoFileSelect(event)"/>
+    </div>
+    <div id="video-file-selected" style="display:none">
+      <div class="scan-status" style="margin-bottom:8px;align-items:center"><i class="ti ti-video"></i> <span id="video-file-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 6px"></span><button onclick="clearVideoFile()" style="background:none;border:none;cursor:pointer;color:var(--ink3);flex-shrink:0"><i class="ti ti-x"></i></button></div>
+      <button class="scan-extract-btn" onclick="extractFromVideoFile()"><i class="ti ti-sparkles"></i> Extract recipe from video</button>
+    </div>
+    <div id="video-url-zone" style="display:none">
+      <div class="scan-zone" style="cursor:default"><i class="ti ti-link"></i><p>Paste a public recipe video URL</p></div>
+      <div class="form-group" style="margin-top:10px"><label>Video URL</label><input type="url" id="video-url-input" placeholder="https://www.facebook.com/watch/?v=…"/></div>
       <button class="scan-extract-btn" style="margin-top:4px" onclick="extractFromVideo()"><i class="ti ti-sparkles"></i> Extract recipe from video</button>
     </div>
-    <div id="video-status" class="scan-status" style="display:none"><span class="dot-anim"><span>.</span><span>.</span><span>.</span></span> <span id="video-status-text">Downloading video…</span></div>
+    <div id="video-status" class="scan-status" style="display:none"><span class="dot-anim"><span>.</span><span>.</span><span>.</span></span> <span id="video-status-text">Processing video…</span></div>
     <div id="video-result" style="display:none"><div class="scan-status" style="margin-bottom:8px"><i class="ti ti-check"></i> Extracted — review &amp; save</div>${reviewFields('vf-')}</div>`;
   return '';
 }
@@ -811,6 +812,67 @@ async function extractFromVideo(){
     document.getElementById('video-status').style.display='none';
     document.getElementById('video-url-zone').style.display='block';
     alert(`Could not extract recipe:\n\n${e.message}\n\nCheck: server URL is correct, video is public, Railway is running.`);
+  }
+}
+
+function switchVideoTab(tab){
+  const isFile=tab==='file';
+  const fileZone=document.getElementById('video-file-zone');
+  const fileSelected=document.getElementById('video-file-selected');
+  const urlZone=document.getElementById('video-url-zone');
+  const btnFile=document.getElementById('vtab-file');
+  const btnUrl=document.getElementById('vtab-url');
+  if(fileZone) fileZone.style.display=isFile&&!selectedVideoFile?'block':'none';
+  if(fileSelected) fileSelected.style.display=isFile&&selectedVideoFile?'flex':'none';
+  if(urlZone) urlZone.style.display=isFile?'none':'block';
+  if(btnFile){btnFile.style.background=isFile?'var(--ink)':'var(--cream2)';btnFile.style.color=isFile?'#fff':'var(--ink2)';btnFile.style.borderColor=isFile?'transparent':'var(--border2)';}
+  if(btnUrl){btnUrl.style.background=isFile?'var(--cream2)':'var(--ink)';btnUrl.style.color=isFile?'var(--ink2)':'#fff';btnUrl.style.borderColor=isFile?'var(--border2)':'transparent';}
+}
+function handleVideoFileSelect(e){
+  const f=e.target.files[0];if(!f)return;
+  selectedVideoFile=f;
+  document.getElementById('video-file-name').textContent=f.name;
+  document.getElementById('video-file-zone').style.display='none';
+  document.getElementById('video-file-selected').style.display='flex';
+}
+function clearVideoFile(){
+  selectedVideoFile=null;
+  const inp=document.getElementById('video-file-input');if(inp)inp.value='';
+  document.getElementById('video-file-zone').style.display='block';
+  document.getElementById('video-file-selected').style.display='none';
+  document.getElementById('video-result').style.display='none';
+  document.getElementById('video-status').style.display='none';
+}
+async function extractFromVideoFile(){
+  if(!selectedVideoFile){alert('Please select a video file.');return;}
+  document.getElementById('video-file-selected').style.display='none';
+  document.getElementById('video-status').style.display='flex';
+  document.getElementById('video-status-text').textContent='Uploading video…';
+  try{
+    const formData=new FormData();
+    formData.append('video',selectedVideoFile);
+    const res=await fetch(`${BACKEND}/extract-video-file`,{method:'POST',body:formData});
+    document.getElementById('video-status-text').textContent='Analysing with AI…';
+    if(!res.ok){
+      let errMsg='Server error';
+      try{const e=await res.json();errMsg=e.error||errMsg;}catch{}
+      throw new Error(errMsg);
+    }
+    const p=await res.json();
+    if(p.error){
+      document.getElementById('video-status').style.display='none';
+      document.getElementById('video-file-selected').style.display='flex';
+      alert('No recipe found in that video.');
+      return;
+    }
+    fillReviewFields('vf-',p);
+    document.getElementById('video-status').style.display='none';
+    document.getElementById('video-result').style.display='flex';
+  }catch(e){
+    console.error('Video file extract error:',e);
+    document.getElementById('video-status').style.display='none';
+    document.getElementById('video-file-selected').style.display='flex';
+    alert(`Could not extract recipe:\n\n${e.message}`);
   }
 }
 
