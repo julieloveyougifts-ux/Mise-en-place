@@ -823,7 +823,7 @@ function switchVideoTab(tab){
   const btnFile=document.getElementById('vtab-file');
   const btnUrl=document.getElementById('vtab-url');
   if(fileZone) fileZone.style.display=isFile&&!selectedVideoFile?'block':'none';
-  if(fileSelected) fileSelected.style.display=isFile&&selectedVideoFile?'flex':'none';
+  if(fileSelected) fileSelected.style.display=isFile&&selectedVideoFile?'block':'none';
   if(urlZone) urlZone.style.display=isFile?'none':'block';
   if(btnFile){btnFile.style.background=isFile?'var(--ink)':'var(--cream2)';btnFile.style.color=isFile?'#fff':'var(--ink2)';btnFile.style.borderColor=isFile?'transparent':'var(--border2)';}
   if(btnUrl){btnUrl.style.background=isFile?'var(--cream2)':'var(--ink)';btnUrl.style.color=isFile?'var(--ink2)':'#fff';btnUrl.style.borderColor=isFile?'var(--border2)':'transparent';}
@@ -833,7 +833,7 @@ function handleVideoFileSelect(e){
   selectedVideoFile=f;
   document.getElementById('video-file-name').textContent=f.name;
   document.getElementById('video-file-zone').style.display='none';
-  document.getElementById('video-file-selected').style.display='flex';
+  document.getElementById('video-file-selected').style.display='block';
 }
 function clearVideoFile(){
   selectedVideoFile=null;
@@ -861,7 +861,7 @@ async function extractFromVideoFile(){
     const p=await res.json();
     if(p.error){
       document.getElementById('video-status').style.display='none';
-      document.getElementById('video-file-selected').style.display='flex';
+      document.getElementById('video-file-selected').style.display='block';
       alert('No recipe found in that video.');
       return;
     }
