@@ -364,19 +364,41 @@ html,body{height:100%;background:var(--cream);font-family:var(--sans);color:var(
     <div class="section-panel" id="panel-fridge">
       <div class="toolbar"><h2>Fridge scanner</h2></div>
       <div style="padding:16px;display:flex;flex-direction:column;gap:12px;flex:1;overflow-y:auto;">
-        <div id="fridge-upload-zone">
-          <div class="scan-zone" onclick="document.getElementById('fridge-file').click()">
-            <i class="ti ti-fridge"></i>
-            <p>Take a photo of your fridge or pantry — Gemini will suggest recipes you can make right now</p>
-            <button class="scan-pick-btn" onclick="event.stopPropagation();document.getElementById('fridge-file').click()"><i class="ti ti-camera"></i> Take / upload photo</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <div style="font-size:11px;font-weight:500;color:var(--ink2);margin-bottom:6px;letter-spacing:0.05em;text-transform:uppercase">Fridge</div>
+            <div id="fridge-upload-zone">
+              <div class="scan-zone" onclick="document.getElementById('fridge-file').click()" style="padding:18px 10px;gap:8px">
+                <i class="ti ti-fridge" style="font-size:22px"></i>
+                <p style="font-size:12px">Tap to photograph fridge</p>
+                <button class="scan-pick-btn" onclick="event.stopPropagation();document.getElementById('fridge-file').click()" style="padding:6px 12px;font-size:12px"><i class="ti ti-camera"></i> Photo</button>
+              </div>
+              <input type="file" id="fridge-file" accept="image/*" capture="environment" style="display:none" onchange="handleFridgePhoto(event)"/>
+            </div>
+            <div id="fridge-preview-wrap" style="display:none">
+              <div class="scan-preview"><img id="fridge-img" src="" alt="Fridge"/><button class="remove-img" onclick="clearFridgePhoto()"><i class="ti ti-x"></i></button></div>
+            </div>
           </div>
-          <input type="file" id="fridge-file" accept="image/*" capture="environment" style="display:none;" onchange="handleFridgePhoto(event)"/>
+          <div>
+            <div style="font-size:11px;font-weight:500;color:var(--ink2);margin-bottom:6px;letter-spacing:0.05em;text-transform:uppercase">Pantry <span style="color:var(--ink3);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
+            <div id="pantry-upload-zone">
+              <div class="scan-zone" onclick="document.getElementById('pantry-file').click()" style="padding:18px 10px;gap:8px">
+                <i class="ti ti-basket" style="font-size:22px"></i>
+                <p style="font-size:12px">Tap to photograph pantry</p>
+                <button class="scan-pick-btn" onclick="event.stopPropagation();document.getElementById('pantry-file').click()" style="padding:6px 12px;font-size:12px"><i class="ti ti-camera"></i> Photo</button>
+              </div>
+              <input type="file" id="pantry-file" accept="image/*" capture="environment" style="display:none" onchange="handlePantryPhoto(event)"/>
+            </div>
+            <div id="pantry-preview-wrap" style="display:none">
+              <div class="scan-preview"><img id="pantry-img" src="" alt="Pantry"/><button class="remove-img" onclick="clearPantryPhoto()"><i class="ti ti-x"></i></button></div>
+            </div>
+          </div>
         </div>
-        <div id="fridge-preview-wrap" style="display:none;">
-          <div class="scan-preview"><img id="fridge-img" src="" alt="Fridge"/><button class="remove-img" onclick="clearFridgePhoto()"><i class="ti ti-x"></i></button></div>
-          <button class="scan-extract-btn" style="margin-top:8px;" onclick="scanFridge()"><i class="ti ti-sparkles"></i> Generate recipe ideas</button>
+        <div id="fridge-generate-wrap" style="display:none">
+          <button class="scan-extract-btn" onclick="scanFridge()"><i class="ti ti-sparkles"></i> Generate recipe ideas</button>
         </div>
-        <div id="fridge-status" style="display:none;" class="scan-status"><span class="dot-anim"><span>.</span><span>.</span><span>.</span></span> Analysing your fridge…</div>
+        <div id="fridge-status" style="display:none" class="scan-status"><span class="dot-anim"><span>.</span><span>.</span><span>.</span></span> Analysing your photos…</div>
+        <div id="fridge-error" style="display:none;font-size:13px;color:#b94a1a;background:#fdf0e8;border:0.5px solid var(--accent2);border-radius:var(--r);padding:10px 13px"></div>
         <div class="fridge-ideas" id="fridge-ideas"></div>
       </div>
     </div>
@@ -871,7 +893,7 @@ async function extractFromVideoFile(){
   }catch(e){
     console.error('Video file extract error:',e);
     document.getElementById('video-status').style.display='none';
-    document.getElementById('video-file-selected').style.display='flex';
+    document.getElementById('video-file-selected').style.display='block';
     alert(`Could not extract recipe:\n\n${e.message}`);
   }
 }
@@ -993,19 +1015,37 @@ function openStore(store){
 }
 
 // ── Fridge scanner ──
-let fridgeImageData=null;
-function handleFridgePhoto(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{fridgeImageData=ev.target.result;document.getElementById('fridge-img').src=fridgeImageData;document.getElementById('fridge-upload-zone').style.display='none';document.getElementById('fridge-preview-wrap').style.display='block';document.getElementById('fridge-ideas').innerHTML='';};r.readAsDataURL(f);}
-function clearFridgePhoto(){fridgeImageData=null;document.getElementById('fridge-file').value='';document.getElementById('fridge-upload-zone').style.display='block';document.getElementById('fridge-preview-wrap').style.display='none';document.getElementById('fridge-ideas').innerHTML='';}
+let fridgeImageData=null,pantryImageData=null;
+function handleFridgePhoto(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{fridgeImageData=ev.target.result;document.getElementById('fridge-img').src=fridgeImageData;document.getElementById('fridge-upload-zone').style.display='none';document.getElementById('fridge-preview-wrap').style.display='block';document.getElementById('fridge-ideas').innerHTML='';document.getElementById('fridge-error').style.display='none';updateFridgeGenerateBtn();};
+  r.readAsDataURL(f);
+}
+function clearFridgePhoto(){fridgeImageData=null;document.getElementById('fridge-file').value='';document.getElementById('fridge-upload-zone').style.display='block';document.getElementById('fridge-preview-wrap').style.display='none';document.getElementById('fridge-ideas').innerHTML='';updateFridgeGenerateBtn();}
+function handlePantryPhoto(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{pantryImageData=ev.target.result;document.getElementById('pantry-img').src=pantryImageData;document.getElementById('pantry-upload-zone').style.display='none';document.getElementById('pantry-preview-wrap').style.display='block';};
+  r.readAsDataURL(f);
+}
+function clearPantryPhoto(){pantryImageData=null;document.getElementById('pantry-file').value='';document.getElementById('pantry-upload-zone').style.display='block';document.getElementById('pantry-preview-wrap').style.display='none';}
+function updateFridgeGenerateBtn(){document.getElementById('fridge-generate-wrap').style.display=fridgeImageData?'block':'none';}
 async function scanFridge(){
   if(!fridgeImageData)return;
-  document.getElementById('fridge-preview-wrap').style.display='none';document.getElementById('fridge-status').style.display='flex';document.getElementById('fridge-ideas').innerHTML='';
+  document.getElementById('fridge-generate-wrap').style.display='none';
+  document.getElementById('fridge-status').style.display='flex';
+  document.getElementById('fridge-error').style.display='none';
+  document.getElementById('fridge-ideas').innerHTML='';
   const b64=fridgeImageData.split(',')[1],mime=fridgeImageData.split(';')[0].split(':')[1];
   const savedNames=recipes.map(r=>r.name).join(', ')||'none';
+  const body={image:b64,mimeType:mime,savedRecipes:savedNames};
+  if(pantryImageData){body.image2=pantryImageData.split(',')[1];body.mimeType2=pantryImageData.split(';')[0].split(':')[1];}
   try{
-    const ideas=await callAI('ai/scan-fridge',{image:b64,mimeType:mime,savedRecipes:savedNames});
+    const ideas=await callAI('ai/scan-fridge',body);
     document.getElementById('fridge-status').style.display='none';
-    document.getElementById('fridge-preview-wrap').style.display='block';
-    if(!ideas.length){document.getElementById('fridge-ideas').innerHTML='<p style="color:var(--ink3);font-size:13px;padding:8px 0;">No ideas found. Try a clearer photo.</p>';return;}
+    document.getElementById('fridge-generate-wrap').style.display='block';
+    if(!ideas||!ideas.length){document.getElementById('fridge-ideas').innerHTML='<p style="color:var(--ink3);font-size:13px;padding:8px 0;">No recipe ideas found. Try a clearer photo with more ingredients visible.</p>';return;}
     document.getElementById('fridge-ideas').innerHTML=ideas.map((idea,i)=>`
       <div class="fridge-idea-card" onclick="useFridgeIdea(${i})">
         <div class="fridge-idea-title">${idea.emoji||'🍽️'} ${idea.name}</div>
@@ -1014,7 +1054,13 @@ async function scanFridge(){
         <div class="use-btn">Tap to add to grocery list →</div>
       </div>`).join('');
     window._fridgeIdeas=ideas;
-  }catch(e){document.getElementById('fridge-status').style.display='none';document.getElementById('fridge-preview-wrap').style.display='block';alert('Could not analyse photo. Try again.');}
+  }catch(e){
+    document.getElementById('fridge-status').style.display='none';
+    document.getElementById('fridge-generate-wrap').style.display='block';
+    const errEl=document.getElementById('fridge-error');
+    errEl.textContent='Could not analyse your photos. Please check your connection and try again.';
+    errEl.style.display='block';
+  }
 }
 function useFridgeIdea(i){
   const idea=window._fridgeIdeas?.[i];if(!idea)return;

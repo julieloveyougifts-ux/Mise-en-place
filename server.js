@@ -174,12 +174,16 @@ app.post('/ai/extract-url', async (req, res) => {
 
 app.post('/ai/scan-fridge', async (req, res) => {
   if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set.' });
-  const { image, mimeType, savedRecipes } = req.body;
+  const { image, mimeType, image2, mimeType2, savedRecipes } = req.body;
   if (!image) return res.status(400).json({ error: 'No image.' });
   try {
+    const parts = [{ inline_data: { mime_type: mimeType||'image/jpeg', data: image } }];
+    if (image2) parts.push({ inline_data: { mime_type: mimeType2||'image/jpeg', data: image2 } });
+    const photoDesc = image2 ? 'these fridge and pantry photos' : 'this fridge/pantry photo';
+    parts.push({ text: `Suggest 4 recipes from ${photoDesc}. Saved recipes: ${savedRecipes||'none'}. Return ONLY a JSON array: [{name, emoji, description (1 sentence), ingredients_needed (string[])}]. No markdown.` });
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ inline_data: { mime_type: mimeType||'image/jpeg', data: image } }, { text: `Suggest 4 recipes from this fridge/pantry photo. Saved recipes: ${savedRecipes||'none'}. Return ONLY a JSON array: [{name, emoji, description (1 sentence), ingredients_needed (string[])}]. No markdown.` }] }] })
+      body: JSON.stringify({ contents: [{ parts }] })
     });
     const d = await r.json();
     const txt = d.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'[]';
