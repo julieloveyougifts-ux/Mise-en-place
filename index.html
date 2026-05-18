@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Mise en Place"/>
 <meta name="theme-color" content="#1a1612"/>
 <title>Mise en Place</title>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/icon.svg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
@@ -488,6 +490,38 @@ const SK_GROCERY  = 'mep-grocery';
 const SK_PROFILES = 'mep-profiles';
 const SK_PROFILE  = 'mep-current-profile';
 const BACKEND     = 'https://mise-en-place-backend-ixea-production.up.railway.app';
+
+// ── PWA service worker ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// ── Web Share Target: handle ?url= or ?text= when opened from a share sheet ──
+(function handleShareTarget() {
+  const p = new URLSearchParams(window.location.search);
+  const shared = p.get('url') || p.get('text') || '';
+  if (!shared) return;
+  // Clean the URL from browser history so refreshing doesn't re-trigger
+  history.replaceState({}, '', '/');
+  // Wait for the app to initialise then open the video import modal
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      openAddModal('video');
+      // Switch to the URL tab and pre-fill the URL
+      setTimeout(() => {
+        switchVideoTab('url');
+        const inp = document.getElementById('video-url-input');
+        if (inp) inp.value = shared;
+        // Also capture any caption/text the share sheet passed
+        const caption = p.get('title') || '';
+        if (caption) {
+          const capEl = document.getElementById('video-caption-text');
+          if (capEl) capEl.value = caption;
+        }
+      }, 100);
+    }, 300);
+  });
+})();
 
 // ── All AI calls go through the backend — no API key needed by users ──
 async function callAI(endpoint, body) {

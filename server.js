@@ -2,7 +2,7 @@ import express from 'express';
 import fetch from 'node-fetch';
 import cors from 'cors';
 import multer from 'multer';
-import { mkdtemp, unlink } from 'fs/promises';
+import { mkdtemp, unlink, readdir, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { readFile } from 'fs/promises';
@@ -88,63 +88,49 @@ app.post('/extract-video-file', upload.single('video'), async (req, res) => {
   }
 });
 
+const MIME_MAP = { mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska', m4v: 'video/mp4', avi: 'video/x-msvideo' };
+
+async function downloadVideoToBuffer(url) {
+  const tmpDir = await mkdtemp(join(tmpdir(), 'mise-'));
+  try {
+    await youtubeDl(url, {
+      output: join(tmpDir, 'video.%(ext)s'),
+      format: 'bestvideo[ext=mp4][filesize<150M]+bestaudio[ext=m4a]/best[ext=mp4][filesize<150M]/best[filesize<150M]/best',
+      maxFilesize: '150m',
+      noPlaylist: true,
+      quiet: true,
+      noWarnings: true,
+    });
+    const files = await readdir(tmpDir);
+    const videoFile = files.find(f => f.startsWith('video.'));
+    if (!videoFile) throw new Error('Download failed — the video may be private or region-restricted.');
+    const ext = videoFile.split('.').pop().toLowerCase();
+    const buffer = await readFile(join(tmpDir, videoFile));
+    const mimeType = MIME_MAP[ext] || 'video/mp4';
+    console.log(`Downloaded ${videoFile} (${(buffer.length / 1024 / 1024).toFixed(1)} MB)`);
+    return { buffer, mimeType, filename: videoFile };
+  } finally {
+    const files = await readdir(tmpDir).catch(() => []);
+    for (const f of files) await unlink(join(tmpDir, f)).catch(() => {});
+    await rmdir(tmpDir).catch(() => {});
+  }
+}
+
 app.post('/extract-video-url', async (req, res) => {
   if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set.' });
-  const { url } = req.body;
+  const { url, captionText = '' } = req.body;
   if (!url) return res.status(400).json({ error: 'No URL provided.' });
-  console.log(`Extracting recipe from URL via Gemini: ${url}`);
+  console.log(`Downloading video from URL: ${url}`);
   try {
-    const prompt = 'Watch this cooking video and extract the recipe. Return ONLY JSON (no markdown, no backticks) with these exact keys: name (string), emoji (string), category (one of: breakfast/lunch/dinner/dessert/snack), time (number, minutes), servings (number), ingredients (array of strings), steps (array of strings). If this is not a cooking recipe video return {"error":"not a recipe"}.';
-
-    // First try with video_metadata URL part (works for YouTube)
-    // Fall back to fetching page text for Facebook
-    let raw = '';
-    try {
-      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { video_metadata: { video_url: url } },
-              { text: prompt }
-            ]
-          }]
-        })
-      });
-      const gd = await geminiRes.json();
-      raw = gd.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-      console.log('Gemini video_metadata response:', raw.slice(0, 300));
-    } catch(e) {
-      console.log('video_metadata failed, trying URL fetch fallback:', e.message);
-    }
-
-    // If empty, try fetching the page and extracting text
-    if (!raw || raw.length < 10) {
-      console.log('Falling back to page text extraction...');
-      const pageRes = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-      const pageHtml = await pageRes.text();
-      const pageText = pageHtml.replace(/<[^>]+>/g,' ').replace(/\s{2,}/g,' ').trim().slice(0,12000);
-      const geminiRes2 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: `Extract any recipe information from this Facebook video page. ${prompt}\n\nPage content: ${pageText}` }] }]
-        })
-      });
-      const gd2 = await geminiRes2.json();
-      raw = gd2.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-      console.log('Page text response:', raw.slice(0, 300));
-    }
-
-    if (!raw || raw.length < 10) {
-      return res.status(422).json({ error: 'Could not extract recipe from that video. Try a different video or use the URL import option instead.' });
-    }
-    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
-    return res.json(parsed);
+    const { buffer, mimeType, filename } = await downloadVideoToBuffer(url);
+    const recipe = await uploadAndExtract(buffer, mimeType, filename, captionText);
+    return res.json(recipe);
   } catch (err) {
-    console.error('Extract error:', err.message);
-    return res.status(500).json({ error: 'Could not extract recipe from that video URL.' });
+    console.error('URL extract error:', err.message);
+    const friendly = err.message.includes('private') || err.message.includes('region') || err.message.includes('failed')
+      ? err.message
+      : 'Could not download that video. Make sure it is a public post and try again.';
+    return res.status(500).json({ error: friendly });
   }
 });
 
