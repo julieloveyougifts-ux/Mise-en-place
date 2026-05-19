@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Mise en Place"/>
 <meta name="theme-color" content="#1a1612"/>
 <title>Mise en Place</title>
-<link rel="manifest" href="/manifest.json"/>
-<link rel="apple-touch-icon" href="/icon.svg"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon.svg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
@@ -493,7 +493,7 @@ const BACKEND     = 'https://mise-en-place-backend-ixea-production.up.railway.ap
 
 // ── PWA service worker ──
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 // ── Web Share Target: handle ?url= or ?text= when opened from a share sheet ──
