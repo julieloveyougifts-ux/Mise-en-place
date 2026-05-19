@@ -31,7 +31,7 @@ async function ensureYtDlp() {
   } catch {}
   // Download yt-dlp binary from GitHub releases
   console.log('Downloading yt-dlp...');
-  const url = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
+  const url = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux';
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`Failed to download yt-dlp: ${resp.status}`);
   const buf = Buffer.from(await resp.arrayBuffer());
