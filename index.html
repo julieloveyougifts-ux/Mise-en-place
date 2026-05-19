@@ -829,15 +829,10 @@ async function extractFromUrl(){
   const url=(document.getElementById('url-input').value||'').trim();if(!url){alert('Enter a URL.');return;}
   document.getElementById('url-input-zone').style.display='none';document.getElementById('url-status').style.display='flex';
   try{
-    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-    const pd=await(await fetch(proxy)).json();
-    const text=(pd.contents||'').replace(/<style[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s{2,}/g,' ').trim().slice(0,12000);
-    const d=await callAI('ai/extract-url',{pageText:text});
-    const txt=JSON.stringify(d);
-    const p=d;
-    if(p.error){document.getElementById('url-status').style.display='none';document.getElementById('url-input-zone').style.display='block';alert("No recipe found at that URL.");return;}
-    fillReviewFields('uf-',p);document.getElementById('url-status').style.display='none';document.getElementById('url-result').style.display='flex';
-  }catch(e){document.getElementById('url-status').style.display='none';document.getElementById('url-input-zone').style.display='block';alert('Could not fetch that URL. Try a different recipe site.');}
+    const d=await callAI('ai/extract-url',{url});
+    if(d.error){document.getElementById('url-status').style.display='none';document.getElementById('url-input-zone').style.display='block';alert('No recipe found at that URL.');return;}
+    fillReviewFields('uf-',d);document.getElementById('url-status').style.display='none';document.getElementById('url-result').style.display='flex';
+  }catch(e){document.getElementById('url-status').style.display='none';document.getElementById('url-input-zone').style.display='block';alert(e.message||'Could not fetch that URL. Try a different recipe site.');}
 }
 
 async function extractFromVideo(){

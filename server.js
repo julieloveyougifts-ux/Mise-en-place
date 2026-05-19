@@ -186,12 +186,29 @@ app.post('/ai/scan-photo', async (req, res) => {
 
 app.post('/ai/extract-url', async (req, res) => {
   if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set.' });
-  const { pageText } = req.body;
-  if (!pageText) return res.status(400).json({ error: 'No page text.' });
+  let { url, pageText } = req.body;
+
+  // If a URL is provided, fetch the page server-side (avoids CORS proxy unreliability)
+  if (url && !pageText) {
+    try {
+      // Strip tracking params (fbclid, utm_*, etc.) that can cause redirects
+      const u = new URL(url);
+      ['fbclid','utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(k => u.searchParams.delete(k));
+      url = u.toString();
+      const pageRes = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; recipe-importer/1.0)' }, redirect: 'follow' });
+      if (!pageRes.ok) return res.status(422).json({ error: `Could not fetch that page (${pageRes.status}). Check the URL and try again.` });
+      const html = await pageRes.text();
+      pageText = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s{2,}/g,' ').trim().slice(0, 14000);
+    } catch(e) {
+      return res.status(422).json({ error: 'Could not reach that URL. Check the link and try again.' });
+    }
+  }
+
+  if (!pageText) return res.status(400).json({ error: 'No URL or page text provided.' });
   try {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: `Extract recipe from this webpage. Return ONLY JSON (no markdown): name, emoji, category (breakfast/lunch/dinner/dessert/snack), time (number), servings (number), ingredients (string[]), steps (string[]). If no recipe: {"error":"not a recipe"}.\n\n${pageText.slice(0,12000)}` }] }] })
+      body: JSON.stringify({ contents: [{ parts: [{ text: `Extract recipe from this webpage. Return ONLY JSON (no markdown): name, emoji, category (breakfast/lunch/dinner/dessert/snack), time (number), servings (number), ingredients (string[]), steps (string[]). If no recipe: {"error":"not a recipe"}.\n\n${pageText}` }] }] })
     });
     const d = await r.json();
     const txt = d.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
