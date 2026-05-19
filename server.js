@@ -195,7 +195,7 @@ app.post('/ai/extract-url', async (req, res) => {
       const u = new URL(url);
       ['fbclid','utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(k => u.searchParams.delete(k));
       url = u.toString();
-      const pageRes = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; recipe-importer/1.0)' }, redirect: 'follow' });
+      const pageRes = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9' }, redirect: 'follow' });
       if (!pageRes.ok) return res.status(422).json({ error: `Could not fetch that page (${pageRes.status}). Check the URL and try again.` });
       const html = await pageRes.text();
       pageText = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s{2,}/g,' ').trim().slice(0, 14000);
