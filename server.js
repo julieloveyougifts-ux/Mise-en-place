@@ -20,15 +20,6 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500
 
 app.get('/', (req, res) => res.json({ status: 'ok', service: 'Mise en place video backend' }));
 
-app.get('/debug-gemini', async (req, res) => {
-  if (!GEMINI_API_KEY) return res.json({ error: 'No API key set', keyPresent: false });
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with just the word: working' }] }] })
-  });
-  const d = await r.json();
-  return res.json({ status: r.status, body: d });
-});
 
 async function uploadAndExtract(buffer, mimetype, displayName, captionText = '') {
   const size = buffer.length;
@@ -140,10 +131,18 @@ async function downloadVideoToBuffer(url) {
 
 app.post('/extract-video-url', async (req, res) => {
   if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set.' });
-  let { url, captionText = '' } = req.body;
-  if (!url) return res.status(400).json({ error: 'No URL provided.' });
+  let { url = '', captionText = '' } = req.body;
+  url = url.trim();
 
-  // Strip Facebook tracking params that cause auth redirects (ref=saved, etc.)
+  // Caption-only path — no URL needed
+  if (!url && captionText) {
+    console.log('No URL — extracting from caption text only');
+    return extractFromCaptionOnly(captionText, res);
+  }
+
+  if (!url) return res.status(400).json({ error: 'No URL or caption provided.' });
+
+  // Strip Facebook/Instagram tracking params
   try {
     const u = new URL(url);
     ['ref', 'mibextid', 'extid', '__tn__', 'sfnsn'].forEach(k => u.searchParams.delete(k));
@@ -152,12 +151,6 @@ app.post('/extract-video-url', async (req, res) => {
 
   const isMeta = /facebook\.com|fb\.watch|instagram\.com/i.test(url);
   console.log(`Downloading video from URL: ${url}`);
-
-  // If no URL provided, go straight to caption-only extraction
-  if (!url && captionText) {
-    console.log('No URL — extracting from caption text only');
-    return extractFromCaptionOnly(captionText, res);
-  }
 
   try {
     const { buffer, mimeType, filename } = await downloadVideoToBuffer(url);
