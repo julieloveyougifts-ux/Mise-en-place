@@ -2,13 +2,44 @@ import express from 'express';
 import fetch from 'node-fetch';
 import cors from 'cors';
 import multer from 'multer';
-import { mkdtemp, unlink, readdir, rmdir } from 'fs/promises';
+import { mkdtemp, unlink, readdir, rmdir, chmod, access } from 'fs/promises';
 import { join } from 'path';
-import { tmpdir } from 'os';
+import { tmpdir, platform } from 'os';
 import { readFile, writeFile } from 'fs/promises';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 const execFileAsync = promisify(execFile);
+
+// Resolve yt-dlp binary — download from GitHub if not in PATH
+let YTDLP_BIN = 'yt-dlp';
+const YTDLP_LOCAL = join(tmpdir(), 'yt-dlp');
+
+async function ensureYtDlp() {
+  // Check if system yt-dlp works
+  try {
+    await execFileAsync('yt-dlp', ['--version'], { timeout: 10000 });
+    console.log('Using system yt-dlp');
+    return;
+  } catch {}
+  // Check if we already downloaded it
+  try {
+    await access(YTDLP_LOCAL);
+    await execFileAsync(YTDLP_LOCAL, ['--version'], { timeout: 10000 });
+    YTDLP_BIN = YTDLP_LOCAL;
+    console.log('Using local yt-dlp at', YTDLP_LOCAL);
+    return;
+  } catch {}
+  // Download yt-dlp binary from GitHub releases
+  console.log('Downloading yt-dlp...');
+  const url = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Failed to download yt-dlp: ${resp.status}`);
+  const buf = Buffer.from(await resp.arrayBuffer());
+  await writeFile(YTDLP_LOCAL, buf);
+  await chmod(YTDLP_LOCAL, 0o755);
+  YTDLP_BIN = YTDLP_LOCAL;
+  console.log('yt-dlp downloaded successfully');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -109,7 +140,7 @@ async function downloadVideoToBuffer(url) {
   const tmpDir = await mkdtemp(join(tmpdir(), 'mise-'));
   const outTemplate = join(tmpDir, 'video.%(ext)s');
   try {
-    const { stderr } = await execFileAsync('yt-dlp', [
+    const { stderr } = await execFileAsync(YTDLP_BIN, [
       '--no-playlist',
       '--max-filesize', '150m',
       '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
@@ -308,7 +339,10 @@ app.post('/ai/ask', async (req, res) => {
   } catch(e) { return res.status(500).json({ error: e.message }); }
 });
 
-app.listen(PORT, () => console.log(`Mise en place backend running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Mise en place backend running on port ${PORT}`);
+  ensureYtDlp().catch(e => console.error('yt-dlp setup failed:', e.message));
+});
 
 app.post('/debug-ytdlp', async (req, res) => {
   const { url } = req.body;
