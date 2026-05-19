@@ -88,6 +88,18 @@ app.post('/extract-video-file', upload.single('video'), async (req, res) => {
   }
 });
 
+async function extractFromCaptionOnly(captionText, res) {
+  const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: `Extract the recipe from this social media post caption. Return ONLY JSON (no markdown) with: name, emoji, category (breakfast/lunch/dinner/dessert/snack), time (number minutes), servings (number), ingredients (string[]), steps (string[]). If no recipe found return {"error":"not a recipe"}.\n\nCaption:\n${captionText}` }] }] })
+  });
+  const gd = await geminiRes.json();
+  const raw = (gd.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '').replace(/```json|```/g, '').trim();
+  if (!raw) return res.status(422).json({ error: 'No recipe found in that caption.' });
+  try { return res.json(JSON.parse(raw)); }
+  catch { return res.status(422).json({ error: 'No recipe found in that caption.' }); }
+}
+
 const MIME_MAP = { mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mkv: 'video/x-matroska', m4v: 'video/mp4', avi: 'video/x-msvideo' };
 
 async function downloadVideoToBuffer(url) {
@@ -130,14 +142,26 @@ app.post('/extract-video-url', async (req, res) => {
 
   const isFacebook = /facebook\.com|fb\.watch/i.test(url);
   console.log(`Downloading video from URL: ${url}`);
+
+  // If no URL provided, go straight to caption-only extraction
+  if (!url && captionText) {
+    console.log('No URL — extracting from caption text only');
+    return extractFromCaptionOnly(captionText, res);
+  }
+
   try {
     const { buffer, mimeType, filename } = await downloadVideoToBuffer(url);
     const recipe = await uploadAndExtract(buffer, mimeType, filename, captionText);
     return res.json(recipe);
   } catch (err) {
     console.error('URL extract error:', err.message);
+    // If video download failed but we have caption text, fall back to text-only extraction
+    if (captionText) {
+      console.log('Video download failed — falling back to caption-only extraction');
+      return extractFromCaptionOnly(captionText, res);
+    }
     const friendly = isFacebook
-      ? 'Facebook videos can\'t be downloaded directly — Facebook blocks it. Save the video to your phone and use "Upload file" instead (tap the Upload file tab).'
+      ? 'Facebook blocked the video download. Try pasting the post caption/description in the field below — the AI can extract the recipe from that alone.'
       : err.message.includes('private') || err.message.includes('region')
         ? err.message
         : 'Could not download that video. Make sure it is a public post and try again.';

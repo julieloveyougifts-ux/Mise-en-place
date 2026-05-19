@@ -789,10 +789,14 @@ function buildModalBody(tab){
         <i class="ti ti-link"></i>
         <p style="font-weight:500;margin-bottom:2px">Paste a video link</p>
         <p style="font-size:12px;color:var(--ink3);line-height:1.6">Works with <strong>TikTok, YouTube, Instagram</strong> and more.<br/>In the app, tap <strong>Share → Copy Link</strong>, then paste it below.</p>
-        <p style="font-size:11px;color:var(--ink3);line-height:1.5;background:var(--cream2);border-radius:8px;padding:8px 10px;margin-top:2px">📱 <strong>Facebook video?</strong> Save it to your phone, then use the <strong>Upload file</strong> tab instead — it always works.</p>
+        <p style="font-size:11px;color:var(--ink3);line-height:1.5;background:var(--cream2);border-radius:8px;padding:8px 10px;margin-top:2px">📱 <strong>Facebook video?</strong> Paste the link above and copy the post caption into the field below — even if the video can't download, the AI can extract the recipe from the caption text alone.</p>
       </div>
-      <div class="form-group" style="margin-top:10px"><label>Video URL</label><input type="url" id="video-url-input" placeholder="https://www.facebook.com/watch/?v=…"/></div>
-      <button class="scan-extract-btn" style="margin-top:4px" onclick="extractFromVideo()"><i class="ti ti-sparkles"></i> Extract recipe from video</button>
+      <div class="form-group" style="margin-top:10px"><label>Video URL <span style="font-weight:400;color:var(--ink3)">(optional if you paste the caption)</span></label><input type="url" id="video-url-input" placeholder="https://www.facebook.com/watch/?v=…"/></div>
+      <div class="form-group" style="margin-top:8px">
+        <label>Post caption or description <span style="font-weight:400;color:var(--ink3)">(recommended — paste the full Facebook/Instagram caption here)</span></label>
+        <textarea id="video-url-caption" style="height:90px" placeholder="Paste the recipe caption, ingredients list, or post description here…"></textarea>
+      </div>
+      <button class="scan-extract-btn" style="margin-top:4px" onclick="extractFromVideo()"><i class="ti ti-sparkles"></i> Extract recipe</button>
     </div>
     <div id="video-status" class="scan-status" style="display:none"><span class="dot-anim"><span>.</span><span>.</span><span>.</span></span> <span id="video-status-text">Processing video…</span></div>
     <div id="video-result" style="display:none"><div class="scan-status" style="margin-bottom:8px"><i class="ti ti-check"></i> Extracted — review &amp; save</div>${reviewFields('vf-')}</div>`;
@@ -837,21 +841,17 @@ async function extractFromUrl(){
 }
 
 async function extractFromVideo(){
-  const videoUrlInput=document.getElementById('video-url-input');
-  const videoUrl=(videoUrlInput?.value||'').trim();
-  if(!videoUrl){alert('Paste a Facebook video URL.');return;}
-
-  // Read server URL from field first (in case not yet saved), then fall back to storage
-
-
+  const videoUrl=(document.getElementById('video-url-input')?.value||'').trim();
+  const captionText=(document.getElementById('video-url-caption')?.value||'').trim();
+  if(!videoUrl&&!captionText){alert('Paste a video URL or the post caption (or both).');return;}
   document.getElementById('video-url-zone').style.display='none';
   document.getElementById('video-status').style.display='flex';
-  document.getElementById('video-status-text').textContent='Downloading video…';
+  document.getElementById('video-status-text').textContent=videoUrl?'Downloading video…':'Reading caption…';
   try{
     const res=await fetch(`${BACKEND}/extract-video-url`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({url:videoUrl})
+      body:JSON.stringify({url:videoUrl,captionText})
     });
     document.getElementById('video-status-text').textContent='Analysing with AI…';
     if(!res.ok){
@@ -863,7 +863,7 @@ async function extractFromVideo(){
     if(p.error){
       document.getElementById('video-status').style.display='none';
       document.getElementById('video-url-zone').style.display='block';
-      alert("No recipe found in that video. Make sure it's a public Facebook video.");
+      alert('No recipe found. Try adding the post caption in the field below the URL.');
       return;
     }
     fillReviewFields('vf-',p);
@@ -873,7 +873,7 @@ async function extractFromVideo(){
     console.error('Video extract error:',e);
     document.getElementById('video-status').style.display='none';
     document.getElementById('video-url-zone').style.display='block';
-    alert(`Could not extract recipe:\n\n${e.message}\n\nCheck: server URL is correct, video is public, Railway is running.`);
+    alert(`Could not extract recipe:\n\n${e.message}`);
   }
 }
 
