@@ -118,8 +118,17 @@ async function downloadVideoToBuffer(url) {
 
 app.post('/extract-video-url', async (req, res) => {
   if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set.' });
-  const { url, captionText = '' } = req.body;
+  let { url, captionText = '' } = req.body;
   if (!url) return res.status(400).json({ error: 'No URL provided.' });
+
+  // Strip Facebook tracking params that cause auth redirects (ref=saved, etc.)
+  try {
+    const u = new URL(url);
+    ['ref', 'mibextid', 'extid', '__tn__', 'sfnsn'].forEach(k => u.searchParams.delete(k));
+    url = u.toString();
+  } catch {}
+
+  const isFacebook = /facebook\.com|fb\.watch/i.test(url);
   console.log(`Downloading video from URL: ${url}`);
   try {
     const { buffer, mimeType, filename } = await downloadVideoToBuffer(url);
@@ -127,9 +136,11 @@ app.post('/extract-video-url', async (req, res) => {
     return res.json(recipe);
   } catch (err) {
     console.error('URL extract error:', err.message);
-    const friendly = err.message.includes('private') || err.message.includes('region') || err.message.includes('failed')
-      ? err.message
-      : 'Could not download that video. Make sure it is a public post and try again.';
+    const friendly = isFacebook
+      ? 'Facebook videos can\'t be downloaded directly — Facebook blocks it. Save the video to your phone and use "Upload file" instead (tap the Upload file tab).'
+      : err.message.includes('private') || err.message.includes('region')
+        ? err.message
+        : 'Could not download that video. Make sure it is a public post and try again.';
     return res.status(500).json({ error: friendly });
   }
 });
