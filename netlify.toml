@@ -1,6 +1,5 @@
 [build]
   publish = "."
-  ignore = "exit 1"
 
 [[headers]]
   for = "/index.html"
