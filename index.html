@@ -785,7 +785,11 @@ function buildModalBody(tab){
       <button class="scan-extract-btn" onclick="extractFromVideoFile()"><i class="ti ti-sparkles"></i> Extract recipe from video</button>
     </div>
     <div id="video-url-zone" style="display:none">
-      <div class="scan-zone" style="cursor:default"><i class="ti ti-link"></i><p>Paste a public recipe video URL</p></div>
+      <div class="scan-zone" style="cursor:default;gap:10px">
+        <i class="ti ti-link"></i>
+        <p style="font-weight:500;margin-bottom:2px">Paste a video link</p>
+        <p style="font-size:12px;color:var(--ink3);line-height:1.6">Works with Facebook, Instagram, TikTok, YouTube and more.<br/>In the app, tap <strong>Share → Copy Link</strong>, then paste it below.</p>
+      </div>
       <div class="form-group" style="margin-top:10px"><label>Video URL</label><input type="url" id="video-url-input" placeholder="https://www.facebook.com/watch/?v=…"/></div>
       <button class="scan-extract-btn" style="margin-top:4px" onclick="extractFromVideo()"><i class="ti ti-sparkles"></i> Extract recipe from video</button>
     </div>
