@@ -184,24 +184,60 @@ app.post('/ai/scan-photo', async (req, res) => {
   } catch(e) { return res.status(500).json({ error: e.message }); }
 });
 
+function extractJsonLdRecipe(html) {
+  const blocks = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+  for (const block of blocks) {
+    try {
+      const data = JSON.parse(block.replace(/<script[^>]*>/i,'').replace(/<\/script>/i,'').trim());
+      const schemas = Array.isArray(data) ? data : data['@graph'] ? data['@graph'] : [data];
+      for (const s of schemas) {
+        const type = s['@type'];
+        if (type === 'Recipe' || (Array.isArray(type) && type.includes('Recipe'))) return s;
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function schemaToRecipe(s) {
+  const timeStr = s.totalTime || s.cookTime || s.prepTime || '';
+  const tm = timeStr.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+  const time = (parseInt(tm?.[1]||0)*60 + parseInt(tm?.[2]||0)) || 30;
+  const servings = parseInt(Array.isArray(s.recipeYield) ? s.recipeYield[0] : s.recipeYield) || 4;
+  const ingredients = (s.recipeIngredient||[]).map(i=>i.replace(/&#\d+;/g,c=>String.fromCharCode(parseInt(c.slice(2)))).replace(/&amp;/g,'&').replace(/&nbsp;/g,' ').trim());
+  const steps = (s.recipeInstructions||[]).map(i=>typeof i==='string'?i:(i.text||i.name||'')).filter(Boolean);
+  const cat = (Array.isArray(s.recipeCategory)?s.recipeCategory[0]:s.recipeCategory||'').toLowerCase();
+  const category = ['breakfast','lunch','dinner','dessert','snack'].find(c=>cat.includes(c))||'dinner';
+  return { name: s.name||'Recipe', emoji:'🍽️', category, time, servings, ingredients, steps };
+}
+
 app.post('/ai/extract-url', async (req, res) => {
   if (!GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set.' });
   let { url, pageText } = req.body;
 
-  // If a URL is provided, fetch the page server-side (avoids CORS proxy unreliability)
+  let html = '';
   if (url && !pageText) {
     try {
-      // Strip tracking params (fbclid, utm_*, etc.) that can cause redirects
       const u = new URL(url);
       ['fbclid','utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(k => u.searchParams.delete(k));
       url = u.toString();
       const pageRes = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9' }, redirect: 'follow' });
       if (!pageRes.ok) return res.status(422).json({ error: `Could not fetch that page (${pageRes.status}). Check the URL and try again.` });
-      const html = await pageRes.text();
-      pageText = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s{2,}/g,' ').trim().slice(0, 14000);
+      html = await pageRes.text();
     } catch(e) {
       return res.status(422).json({ error: 'Could not reach that URL. Check the link and try again.' });
     }
+  }
+
+  // Try JSON-LD structured data first — most recipe sites include this and it's exact
+  if (html) {
+    const schema = extractJsonLdRecipe(html);
+    if (schema) {
+      console.log(`JSON-LD recipe found: ${schema.name}`);
+      return res.json(schemaToRecipe(schema));
+    }
+    // Fall back to plain text for Gemini
+    pageText = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s{2,}/g,' ').trim().slice(0, 14000);
   }
 
   if (!pageText) return res.status(400).json({ error: 'No URL or page text provided.' });
@@ -211,9 +247,10 @@ app.post('/ai/extract-url', async (req, res) => {
       body: JSON.stringify({ contents: [{ parts: [{ text: `Extract recipe from this webpage. Return ONLY JSON (no markdown): name, emoji, category (breakfast/lunch/dinner/dessert/snack), time (number), servings (number), ingredients (string[]), steps (string[]). If no recipe: {"error":"not a recipe"}.\n\n${pageText}` }] }] })
     });
     const d = await r.json();
-    const txt = d.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
-    return res.json(JSON.parse(txt.replace(/```json|```/g,'').trim()));
-  } catch(e) { return res.status(500).json({ error: e.message }); }
+    const txt = (d.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'').replace(/```json|```/g,'').trim();
+    if (!txt) return res.status(422).json({ error: 'No recipe found at that URL.' });
+    return res.json(JSON.parse(txt));
+  } catch(e) { return res.status(500).json({ error: 'Could not extract a recipe from that page.' }); }
 });
 
 app.post('/ai/scan-fridge', async (req, res) => {
