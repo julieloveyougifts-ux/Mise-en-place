@@ -140,7 +140,7 @@ app.post('/extract-video-url', async (req, res) => {
     url = u.toString();
   } catch {}
 
-  const isFacebook = /facebook\.com|fb\.watch/i.test(url);
+  const isMeta = /facebook\.com|fb\.watch|instagram\.com/i.test(url);
   console.log(`Downloading video from URL: ${url}`);
 
   // If no URL provided, go straight to caption-only extraction
@@ -160,8 +160,8 @@ app.post('/extract-video-url', async (req, res) => {
       console.log('Video download failed — falling back to caption-only extraction');
       return extractFromCaptionOnly(captionText, res);
     }
-    const friendly = isFacebook
-      ? 'Facebook blocked the video download. Try pasting the post caption/description in the field below — the AI can extract the recipe from that alone.'
+    const friendly = isMeta
+      ? 'Facebook and Instagram block video downloads from outside their apps. Paste the post caption/description in the field below instead — the AI can extract the recipe from the text alone.'
       : err.message.includes('private') || err.message.includes('region')
         ? err.message
         : 'Could not download that video. Make sure it is a public post and try again.';
