@@ -5,8 +5,10 @@ import multer from 'multer';
 import { mkdtemp, unlink, readdir, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { readFile } from 'fs/promises';
-import youtubeDl from 'youtube-dl-exec';
+import { readFile, writeFile } from 'fs/promises';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+const execFileAsync = promisify(execFile);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -105,15 +107,16 @@ const MIME_MAP = { mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm',
 
 async function downloadVideoToBuffer(url) {
   const tmpDir = await mkdtemp(join(tmpdir(), 'mise-'));
+  const outTemplate = join(tmpDir, 'video.%(ext)s');
   try {
-    await youtubeDl(url, {
-      output: join(tmpDir, 'video.%(ext)s'),
-      format: 'bestvideo[ext=mp4][filesize<150M]+bestaudio[ext=m4a]/best[ext=mp4][filesize<150M]/best[filesize<150M]/best',
-      maxFilesize: '150m',
-      noPlaylist: true,
-      quiet: true,
-      noWarnings: true,
-    });
+    const { stderr } = await execFileAsync('yt-dlp', [
+      '--no-playlist',
+      '--max-filesize', '150m',
+      '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+      '-o', outTemplate,
+      url,
+    ], { timeout: 120000 });
+    if (stderr) console.log('yt-dlp stderr:', stderr);
     const files = await readdir(tmpDir);
     const videoFile = files.find(f => f.startsWith('video.'));
     if (!videoFile) throw new Error('Download failed — the video may be private or region-restricted.');
