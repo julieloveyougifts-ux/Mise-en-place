@@ -22,7 +22,7 @@ app.get('/', (req, res) => res.json({ status: 'ok', service: 'Mise en place vide
 
 app.get('/debug-gemini', async (req, res) => {
   if (!GEMINI_API_KEY) return res.json({ error: 'No API key set' });
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts: [{ text: 'Say: ok' }] }] })
   });
@@ -66,7 +66,7 @@ async function uploadAndExtract(buffer, mimetype, displayName, captionText = '')
     console.log(`Polling: ${state} (${++attempts})`);
   }
   if (state !== 'ACTIVE') throw new Error(`File not ready: ${state}`);
-  const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts: [
       { file_data: { mime_type: mimetype, file_uri: fileUri } },
@@ -99,7 +99,7 @@ app.post('/extract-video-file', upload.single('video'), async (req, res) => {
 });
 
 async function extractFromCaptionOnly(captionText, res) {
-  const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts: [{ text: `Extract the recipe from this social media post caption. Return ONLY JSON (no markdown) with: name, emoji, category (breakfast/lunch/dinner/dessert/snack), time (number minutes), servings (number), ingredients (string[]), steps (string[]). If no recipe found return {"error":"not a recipe"}.\n\nCaption:\n${captionText}` }] }] })
   });
@@ -184,7 +184,7 @@ app.post('/ai/scan-photo', async (req, res) => {
   const { image, mimeType } = req.body;
   if (!image) return res.status(400).json({ error: 'No image provided.' });
   try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ inline_data: { mime_type: mimeType||'image/jpeg', data: image } }, { text: 'Extract recipe from this image. Return ONLY JSON (no markdown): name, emoji, category (breakfast/lunch/dinner/dessert/snack), time (number), servings (number), ingredients (string[]), steps (string[]). If no recipe: {"error":"not a recipe"}.' }] }] })
     });
@@ -252,7 +252,7 @@ app.post('/ai/extract-url', async (req, res) => {
 
   if (!pageText) return res.status(400).json({ error: 'No URL or page text provided.' });
   try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: `Extract recipe from this webpage. Return ONLY JSON (no markdown): name, emoji, category (breakfast/lunch/dinner/dessert/snack), time (number), servings (number), ingredients (string[]), steps (string[]). If no recipe: {"error":"not a recipe"}.\n\n${pageText}` }] }] })
     });
@@ -272,7 +272,7 @@ app.post('/ai/scan-fridge', async (req, res) => {
     if (image2) parts.push({ inline_data: { mime_type: mimeType2||'image/jpeg', data: image2 } });
     const photoDesc = image2 ? 'these fridge and pantry photos' : 'this fridge/pantry photo';
     parts.push({ text: `Suggest 4 recipes from ${photoDesc}. Saved recipes: ${savedRecipes||'none'}. Return ONLY a JSON array: [{name, emoji, description (1 sentence), ingredients_needed (string[])}]. No markdown.` });
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts }] })
     });
@@ -287,7 +287,7 @@ app.post('/ai/grocery-list', async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: 'No prompt.' });
   try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
@@ -302,7 +302,7 @@ app.post('/ai/ask', async (req, res) => {
   const { question, recipeNames } = req.body;
   if (!question) return res.status(400).json({ error: 'No question.' });
   try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ system_instruction: { parts: [{ text: `Helpful cooking assistant. User's recipes: ${recipeNames||'none'}. Reply under 80 words, no markdown.` }] }, contents: [{ parts: [{ text: question }] }] })
     });
