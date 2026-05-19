@@ -306,3 +306,13 @@ app.post('/ai/ask', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Mise en place backend running on port ${PORT}`));
+
+app.post('/debug-ytdlp', async (req, res) => {
+  const { url } = req.body;
+  try {
+    const result = await downloadVideoToBuffer(url);
+    return res.json({ ok: true, size: result.buffer.length, mime: result.mimeType });
+  } catch(e) {
+    return res.json({ error: e.message, stderr: e.stderr || '', stdout: e.stdout || '' });
+  }
+});
