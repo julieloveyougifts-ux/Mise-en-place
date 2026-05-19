@@ -21,11 +21,13 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500
 app.get('/', (req, res) => res.json({ status: 'ok', service: 'Mise en place video backend' }));
 
 app.get('/debug-gemini', async (req, res) => {
-  if (!GEMINI_API_KEY) return res.json({ error: 'No API key set' });
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
+  if (!GEMINI_API_KEY) return res.json({ error: 'No API key set', keyPresent: false });
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with just the word: working' }] }] })
+  });
   const d = await r.json();
-  const names = (d.models||[]).map(m=>m.name).filter(n=>n.includes('flash')||n.includes('pro'));
-  return res.json({ status: r.status, available: names });
+  return res.json({ status: r.status, body: d });
 });
 
 async function uploadAndExtract(buffer, mimetype, displayName, captionText = '') {
